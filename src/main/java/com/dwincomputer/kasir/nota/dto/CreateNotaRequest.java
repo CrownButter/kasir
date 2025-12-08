@@ -1,13 +1,11 @@
 package com.dwincomputer.kasir.nota.dto;
 
 import lombok.Data;
-
 import java.math.BigDecimal;
 import java.util.List;
 
 @Data
 public class CreateNotaRequest {
-
     private Long kasirId;
     private String kasirNama;
 
@@ -15,9 +13,12 @@ public class CreateNotaRequest {
     private String customerAlamat;
     private String customerTelp;
 
+    // Field Baru
+    private String barangCustomer;
+    private String keluhan;
+
     private String tipe;
     private String status;
-
     private BigDecimal dp;
 
     private List<CreateNotaItem> items;

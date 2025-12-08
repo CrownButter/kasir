@@ -1,6 +1,7 @@
 package com.dwincomputer.kasir.nota.snapshot;
 
 import com.dwincomputer.kasir.nota.entity.NotaEntity;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -24,5 +25,6 @@ public class NotaSnapshotEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "nota_id")
+    @JsonBackReference
     private NotaEntity nota;
 }

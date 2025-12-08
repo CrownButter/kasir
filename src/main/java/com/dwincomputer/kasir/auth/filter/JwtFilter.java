@@ -2,7 +2,6 @@ package com.dwincomputer.kasir.auth.filter;
 
 import com.dwincomputer.kasir.auth.service.JwtService;
 import com.dwincomputer.kasir.auth.service.UserService;
-import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -10,6 +9,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -30,45 +30,46 @@ public class JwtFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         final String authHeader = request.getHeader("Authorization");
+        final String jwt;
+        final String username;
 
-        String username = null;
-        String jwtToken = null;
+        // DEBUG LOG 1
+        System.out.println(">>> JWT FILTER TRIGGERED untuk URL: " + request.getRequestURI());
 
-        // Ambil token dari header
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            jwtToken = authHeader.substring(7);
-
-            try {
-                username = jwtService.extractUsername(jwtToken);
-            } catch (ExpiredJwtException e) {
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token expired");
-                return;
-            } catch (Exception e) {
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid token");
-                return;
-            }
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            System.out.println(">>> TOKEN TIDAK DITEMUKAN ATAU FORMAT SALAH");
+            filterChain.doFilter(request, response);
+            return;
         }
 
-        // Validasi user
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+        try {
+            jwt = authHeader.substring(7);
+            username = jwtService.extractUsername(jwt);
+            System.out.println(">>> USERNAME DARI TOKEN: " + username);
 
-            var userDetails = userService.loadUserByUsername(username);
+            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
-            if (jwtService.validateToken(jwtToken, userDetails)) {
+                // Cek apakah user ada di DB
+                UserDetails userDetails = this.userService.loadUserByUsername(username);
+                System.out.println(">>> USER DITEMUKAN DI DB: " + userDetails.getUsername());
 
-                UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(
-                                userDetails,
-                                null,
-                                userDetails.getAuthorities()
-                        );
-
-                authToken.setDetails(
-                        new WebAuthenticationDetailsSource().buildDetails(request)
-                );
-
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+                // Validasi Token
+                if (jwtService.validateToken(jwt, userDetails)) {
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                            userDetails,
+                            null,
+                            userDetails.getAuthorities()
+                    );
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                    System.out.println(">>> AUTENTIKASI SUKSES! SecurityContext di-set.");
+                } else {
+                    System.out.println(">>> VALIDASI TOKEN GAGAL (Mungkin expired atau secret key beda)");
+                }
             }
+        } catch (Exception e) {
+            System.out.println(">>> ERROR DI JWT FILTER: " + e.getMessage());
+            e.printStackTrace(); // Agar kita lihat error lengkapnya
         }
 
         filterChain.doFilter(request, response);

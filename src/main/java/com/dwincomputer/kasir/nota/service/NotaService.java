@@ -14,34 +14,34 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Optional;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class NotaService {
 
     private final NotaRepository notaRepo;
-    private final ItemRepository itemRepo; // Inject ItemRepository untuk stok
+    private final ItemRepository itemRepo;
 
-    // GENERATE NOMOR SERI (ddMMyy + 2 DIGIT COUNTER)
+    // === TAMBAHAN BARU: AMBIL SEMUA DATA ===
+    public List<NotaEntity> getAll() {
+        return notaRepo.findAll();
+    }
+    // =======================================
+
     private String generateNomorSeri() {
         LocalDate today = LocalDate.now();
         String prefix = today.format(DateTimeFormatter.ofPattern("ddMMyy"));
-
         NotaEntity last = notaRepo.findLastByPrefix(prefix);
         int nextCounter = 1;
-
         if (last != null) {
-            String lastSeri = last.getNomorSeri();
-            String counter = lastSeri.substring(6); // ambil setelah ddMMyy
+            String counter = last.getNomorSeri().substring(6);
             nextCounter = Integer.parseInt(counter) + 1;
         }
-
         return prefix + String.format("%02d", nextCounter);
     }
 
-    // CREATE NOTA & KURANGI STOK
-    @Transactional // Penting: Agar jika stok error, nota tidak tersimpan sebagian
+    @Transactional
     public NotaEntity create(CreateNotaRequest req) {
         String nomorSeri = generateNomorSeri();
 
@@ -56,57 +56,54 @@ public class NotaService {
                 .customerTelp(req.getCustomerTelp())
                 .tipe(req.getTipe())
                 .status(req.getStatus())
-                .dp(req.getDp())
+                .barangCustomer(req.getBarangCustomer())
+                .keluhan(req.getKeluhan())
+                .dp(req.getDp() == null ? BigDecimal.ZERO : req.getDp())
                 .build();
 
         BigDecimal total = BigDecimal.ZERO;
 
-        // Loop items untuk snapshot & update stok
-        for (CreateNotaRequest.CreateNotaItem it : req.getItems()) {
+        if (req.getItems() != null) {
+            for (CreateNotaRequest.CreateNotaItem it : req.getItems()) {
+                BigDecimal subtotal = it.getHargaSatuan().multiply(BigDecimal.valueOf(it.getJumlah()));
+                total = total.add(subtotal);
 
-            // 1. Hitung Subtotal
-            BigDecimal subtotal = it.getHargaSatuan()
-                    .multiply(BigDecimal.valueOf(it.getJumlah()));
-            total = total.add(subtotal);
+                NotaSnapshotEntity snap = NotaSnapshotEntity.builder()
+                        .nota(nota)
+                        .itemId(it.getItemId())
+                        .namaBarang(it.getNamaBarang())
+                        .catatan(it.getCatatan())
+                        .hargaSatuan(it.getHargaSatuan())
+                        .jumlah(it.getJumlah())
+                        .totalHarga(subtotal)
+                        .build();
 
-            // 2. Buat Snapshot (Audit Data)
-            NotaSnapshotEntity snap = NotaSnapshotEntity.builder()
-                    .nota(nota)
-                    .itemId(it.getItemId())
-                    .namaBarang(it.getNamaBarang())
-                    .catatan(it.getCatatan())
-                    .hargaSatuan(it.getHargaSatuan())
-                    .jumlah(it.getJumlah())
-                    .totalHarga(subtotal)
-                    .build();
+                nota.getSnapshots().add(snap);
 
-            nota.getSnapshots().add(snap);
-
-            // 3. LOGIKA PENGURANGAN STOK (Hanya jika Item ID ada/bukan jasa manual)
-            if (it.getItemId() != null && it.getItemId() > 0) {
-                ItemEntity itemGudang = itemRepo.findById(it.getItemId())
-                        .orElseThrow(() -> new RuntimeException("Barang dengan ID " + it.getItemId() + " tidak ditemukan"));
-
-                // Cek Stok Cukup?
-                if (itemGudang.getStok() < it.getJumlah()) {
-                    throw new RuntimeException("Stok barang " + itemGudang.getNama() + " tidak cukup! Sisa: " + itemGudang.getStok());
+                if (it.getItemId() != null) {
+                    ItemEntity itemGudang = itemRepo.findById(it.getItemId())
+                            .orElseThrow(() -> new RuntimeException("Barang ID " + it.getItemId() + " tidak ditemukan"));
+                    if (itemGudang.getStok() < it.getJumlah()) {
+                        throw new RuntimeException("Stok " + itemGudang.getNama() + " habis!");
+                    }
+                    itemGudang.setStok(itemGudang.getStok() - it.getJumlah());
+                    itemRepo.save(itemGudang);
                 }
-
-                // Kurangi Stok
-                itemGudang.setStok(itemGudang.getStok() - it.getJumlah());
-                itemRepo.save(itemGudang);
             }
         }
 
         nota.setTotal(total);
-        BigDecimal dp = req.getDp() == null ? BigDecimal.ZERO : req.getDp();
-        nota.setDp(dp);
-        nota.setSisa(total.subtract(dp));
+        nota.setSisa(total.subtract(nota.getDp()));
 
         return notaRepo.save(nota);
     }
 
     public NotaEntity get(Long id) {
         return notaRepo.findById(id).orElseThrow(() -> new RuntimeException("Nota tidak ditemukan"));
+    }
+    public void updateStatus(Long id, String newStatus) {
+        NotaEntity nota = get(id); // pakai method get yg sudah ada
+        nota.setStatus(newStatus);
+        notaRepo.save(nota);
     }
 }

@@ -17,13 +17,19 @@ public class AuthService {
     private final UserRepository userRepo;
     private final PasswordEncoder encoder;
     private final AuthenticationManager authManager;
-    private final JwtService jwtService;   // <-- WAJIB: ganti JwtUtils ke JwtService
+    private final JwtService jwtService;
 
     public UserResponse register(RegisterRequest req) {
+        // === TAMBAHKAN VALIDASI INI ===
+        if (userRepo.findByUsername(req.getUsername()).isPresent()) {
+            throw new RuntimeException("Username '" + req.getUsername() + "' sudah digunakan!");
+        }
+        // ==============================
+
         User user = User.builder()
                 .username(req.getUsername())
                 .password(encoder.encode(req.getPassword()))
-                .role(req.getRole())   // ADMIN / KASIR
+                .role(req.getRole())
                 .build();
 
         userRepo.save(user);
