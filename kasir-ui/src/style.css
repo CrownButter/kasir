@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+/* CSS KHUSUS PRINT */
+@media print {
+    
+    /* 1. Sembunyikan SEMUA elemen di halaman */
+    body * {
+        visibility: hidden;
+    }
+
+    /* 2. Tampilkan HANYA elemen dengan ID 'printable-area' dan isinya */
+    #printable-area, #printable-area * {
+        visibility: visible;
+    }
+
+    /* 3. Posisikan area print di pojok kiri atas kertas & putih bersih */
+    #printable-area {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0;
+        padding: 20px; /* Beri sedikit jarak */
+        background-color: white !important;
+        box-shadow: none !important; /* Hilangkan bayangan modal */
+    }
+
+    /* 4. Sembunyikan elemen dengan class 'no-print' (tombol tutup/cetak) */
+    .no-print {
+        display: none !important;
+    }
+}
