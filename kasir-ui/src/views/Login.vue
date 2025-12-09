@@ -29,7 +29,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import api from '../api';
+import api from '../api'; // Pastikan path import api.js benar
 import { useRouter } from 'vue-router';
 
 const username = ref('');
@@ -37,13 +37,13 @@ const password = ref('');
 const router = useRouter();
 const toko = ref({});
 
-// Load data toko meskipun belum login (Karena endpoint sudah di-public-kan di backend)
+// Load data toko
 onMounted(async () => {
     try {
         const res = await api.get('/api/admin/toko');
         toko.value = res.data;
     } catch(e) {
-        console.log("Offline / Backend mati");
+        console.log("Offline / Backend mati / Belum setup toko");
     }
 });
 
@@ -54,7 +54,11 @@ const handleLogin = async () => {
       password: password.value
     });
     
-    localStorage.setItem('token', res.data.token);
+    // PERUBAHAN DISINI: Simpan Access Token DAN Refresh Token
+    // Sesuai dengan DTO LoginResponse dari Backend
+    localStorage.setItem('accessToken', res.data.accessToken); 
+    localStorage.setItem('refreshToken', res.data.refreshToken);
+    
     localStorage.setItem('username', res.data.username);
     localStorage.setItem('role', res.data.role);
     
@@ -62,7 +66,16 @@ const handleLogin = async () => {
     window.location.href = "/"; 
     
   } catch (err) {
-    alert('Login Gagal! Cek username/password.');
+    // Error handling lebih detail
+    if (err.response && err.response.status === 400) {
+        // Backend menggunakan @Valid, error mungkin berupa field validation
+        alert('Data tidak valid / Salah input.');
+    } else if (err.response && err.response.status === 401) {
+        alert('Username atau Password salah!');
+    } else {
+        alert('Login Gagal! Server error.');
+    }
+    console.error(err);
   }
 };
 </script>

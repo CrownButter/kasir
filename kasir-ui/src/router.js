@@ -7,7 +7,8 @@ import Inventory from './views/Inventory.vue';
 import AdminDashboard from './views/AdminDashboard.vue';
 
 const routes = [
-    { path: '/login', component: Login },
+    // Tambahkan meta guest agar kalau sudah login tidak bisa buka halaman login lagi
+    { path: '/login', component: Login, meta: { guest: true } }, 
     
     // Halaman Umum (Semua User Login Bisa Akses)
     { path: '/', component: KasirHistory, meta: { requiresAuth: true } },
@@ -15,13 +16,13 @@ const routes = [
     { path: '/print/:id', component: NotaPrint, meta: { requiresAuth: true } },
     { path: '/inventory', component: Inventory, meta: { requiresAuth: true } },
     
-    // HALAMAN KHUSUS ADMIN (Perhatikan bagian meta: role)
+    // HALAMAN KHUSUS ADMIN
     { 
         path: '/admin', 
         component: AdminDashboard, 
         meta: { 
             requiresAuth: true, 
-            role: 'ADMIN' // <--- KUNCI PENGAMANAN ADA DISINI
+            role: 'ADMIN' 
         } 
     },
 ];
@@ -33,22 +34,26 @@ const router = createRouter({
 
 // === PENJAGA PINTU (GUARD) ===
 router.beforeEach((to, from, next) => {
-    const token = localStorage.getItem('token');
-    const userRole = localStorage.getItem('role'); // Ambil role dari memori browser
+    // PERBAIKAN 1: Ganti 'token' menjadi 'accessToken' sesuai Login.vue
+    const token = localStorage.getItem('accessToken'); 
+    const userRole = localStorage.getItem('role'); 
 
     // 1. Cek Apakah Halaman Butuh Login?
     if (to.meta.requiresAuth && !token) {
-        return next('/login'); // Tendang ke login jika tidak ada token
+        return next('/login'); // Tendang ke login jika tidak ada accessToken
     }
 
-    // 2. Cek Apakah Halaman Khusus ADMIN?
-    if (to.meta.role === 'ADMIN') {
-        // Debugging: Lihat di Console F12 jika masih lolos
-        console.log(`Cek Akses Admin: Role User = ${userRole}`);
+    // 2. Cek Apakah User Sudah Login tapi mau masuk halaman Login?
+    if (to.meta.guest && token) {
+        return next('/'); // Tendang ke Dashboard
+    }
 
+    // 3. Cek Apakah Halaman Khusus ADMIN?
+    if (to.meta.role === 'ADMIN') {
+        // Jika role di localStorage bukan ADMIN, tolak
         if (userRole !== 'ADMIN') {
-            alert("⛔ AKSES DITOLAK: Halaman ini khusus Admin!");
-            return next('/'); // Tendang balik ke Home (Kasir History)
+            alert(" AKSES DITOLAK: Halaman ini khusus Admin!");
+            return next('/'); // Tendang balik ke Home
         }
     }
 

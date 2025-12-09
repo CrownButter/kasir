@@ -18,11 +18,14 @@ import java.util.function.Function;
 @Service
 public class JwtService {
 
+    // Masukkan ini di application.properties atau Environment Variables:
+    // app.jwt.secret=662d7747374762335f6a6b3374437233617433642121215f5375706572536563726574
+    // (Harus Hex string minimal 256-bit)
     @Value("${app.jwt.secret}")
     private String secretKey;
 
     @Value("${app.jwt.expiration-ms}")
-    private long jwtExpiration;
+    private long jwtExpiration; // Disarankan pendek, misal: 900000 (15 menit)
 
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
@@ -42,6 +45,7 @@ public class JwtService {
                 .setClaims(extraClaims)
                 .setSubject(userDetails.getUsername())
                 .setIssuedAt(new Date(System.currentTimeMillis()))
+                // Access Token Short-Lived (untuk keamanan)
                 .setExpiration(new Date(System.currentTimeMillis() + jwtExpiration))
                 .signWith(getSignInKey(), SignatureAlgorithm.HS256)
                 .compact();
@@ -69,7 +73,11 @@ public class JwtService {
     }
 
     private Key getSignInKey() {
-        // Mengubah string secret menjadi Key Object yang valid
-        return Keys.hmacShaKeyFor(secretKey.getBytes());
+        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
+        // Validasi panjang key untuk mencegah error "Weak Key"
+        if(keyBytes.length < 32) {
+            throw new RuntimeException("JWT Secret di application.properties terlalu pendek! Gunakan minimal 256-bit key.");
+        }
+        return Keys.hmacShaKeyFor(keyBytes);
     }
 }

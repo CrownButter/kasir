@@ -31,3 +31,6 @@ build/
 
 ### VS Code ###
 .vscode/
+.printready/
+.backup/
+vue-dist.tar.gz
