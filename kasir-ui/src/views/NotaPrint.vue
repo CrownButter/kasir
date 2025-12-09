@@ -18,7 +18,7 @@
         <div class="space-y-1">
             <div class="flex"><span class="w-24 font-bold">Customer</span> <span>: {{ nota.customerNama }}</span></div>
             <div class="flex"><span class="w-24 font-bold">Telp</span> <span>: {{ nota.customerTelp }}</span></div>
-            <div class="flex"><span class="w-24 font-bold">Unit</span> <span>: {{ nota.barangCustomer || '-' }}</span></div>
+            <div class="flex"><span class="w-24 font-bold">Alamat</span> <span>: {{ nota.customerAlamat || '-' }}</span></div>
         </div>
     </div>
 
@@ -58,7 +58,7 @@
         </div>
         <div class="text-center">
             <p class="mb-16">Hormat Kami,</p>
-            <p class="font-bold border-b border-black pb-1 px-4">({{ toko.namaToko || 'Admin' }})</p>
+            <p class="font-bold border-b border-black pb-1 px-4">({{ toko.kasirNama || 'Admin' }})</p>
         </div>
     </div>
 
