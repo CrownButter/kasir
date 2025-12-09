@@ -39,7 +39,7 @@ api.interceptors.response.use(
 
                 // Panggil endpoint refresh token di backend
                 // Perhatikan: Kita pakai axios biasa (bukan instance 'api') untuk menghindari loop
-                const res = await axios.post('http://localhost:8080/api/auth/refresh-token', {
+                const res = await axios.post('/api/auth/refresh-token', {
                     refreshToken: refreshToken
                 });
 
