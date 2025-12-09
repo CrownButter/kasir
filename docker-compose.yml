@@ -1,0 +1,44 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: kasir-db
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: kasir_db
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - kasir-net
+    restart: always
+
+  backend:
+    build: .
+    container_name: kasir-backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://kasir-db:3306/kasir_db?createDatabaseIfNotExist=true&useSSL=false
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      APP_JWT_SECRET: ${JWT_SECRET}
+      APP_PRINTER_NAME: POS-80
+    depends_on:
+      - mysql
+    networks:
+      - kasir-net
+    restart: always
+
+  frontend:
+    build: ./kasir-ui
+    container_name: kasir-frontend
+    ports:
+      - "8081:80"  # We use port 8081 to be safe on CyberPanel
+    depends_on:
+      - backend
+    networks:
+      - kasir-net
+    restart: always
+
+volumes:
+  mysql_data:
+
+networks:
+  kasir-net:

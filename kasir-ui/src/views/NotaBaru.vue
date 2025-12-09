@@ -91,21 +91,37 @@
             </table>
         </div>
 
-        <div class="flex justify-between items-center mt-4 pt-4 border-t">
+        <div class="flex justify-between items-start mt-4 pt-4 border-t">
             <button @click="addRow" class="bg-gray-100 text-gray-700 px-4 py-2 rounded font-bold hover:bg-gray-200 border">
                 + Tambah Barang Baru
             </button>
             
-            <div class="flex items-center gap-6">
-                <div class="text-right">
-                    <div class="text-gray-500 text-sm">Total Tagihan</div>
-                    <div class="text-2xl font-bold text-blue-800">Rp {{ formatNumber(grandTotal) }}</div>
+            <div class="flex items-end gap-6">
+                <div class="flex flex-col gap-2 items-end min-w-[200px]">
+                    <div class="flex justify-between w-full items-center border-b border-dashed pb-1">
+                        <span class="text-gray-500 text-sm">Total Tagihan:</span>
+                        <span class="text-xl font-bold text-blue-800">Rp {{ formatNumber(grandTotal) }}</span>
+                    </div>
+
+                    <div class="flex justify-between w-full items-center">
+                        <span class="text-gray-500 text-sm font-bold">DP / Uang Muka:</span>
+                        <input type="number" v-model="form.dp" 
+                               class="text-right border-b-2 border-gray-300 focus:border-blue-500 w-32 outline-none font-bold text-gray-700 bg-gray-50 px-1" 
+                               placeholder="0" />
+                    </div>
+
+                    <div class="flex justify-between w-full items-center pt-2 border-t border-gray-300">
+                        <span class="text-gray-500 text-sm font-bold">Sisa Pembayaran:</span>
+                        <span class="text-xl font-bold text-red-600">Rp {{ formatNumber(grandTotal - form.dp) }}</span>
+                    </div>
                 </div>
                 
-                <div class="flex gap-2">
-                    <button @click="$router.push('/')" class="px-6 py-3 rounded border hover:bg-gray-100 font-bold">Batal</button>
-                    <button @click="saveNota" class="px-8 py-3 rounded bg-blue-600 text-white font-bold hover:bg-blue-700 shadow-lg">
+                <div class="flex flex-col gap-2 h-full justify-end pb-1">
+                    <button @click="saveNota" class="px-8 py-3 rounded bg-blue-600 text-white font-bold hover:bg-blue-700 shadow-lg h-full">
                         SIMPAN NOTA
+                    </button>
+                    <button @click="$router.push('/')" class="px-6 py-1 rounded text-gray-500 hover:text-red-500 text-sm font-bold text-right">
+                        Batal
                     </button>
                 </div>
             </div>
@@ -125,8 +141,9 @@ const router = useRouter();
 const form = ref({
     customerNama: '',
     customerTelp: '',
-    customerAlamat: '', // Field Baru
-    tipe: 'SERVICE'
+    customerAlamat: '',
+    tipe: 'SERVICE',
+    dp: 0 // FIELD BARU: DP default 0
 });
 
 const rows = ref([
@@ -176,7 +193,6 @@ const saveNota = async () => {
 
     let lastParentName = "";
     
-    // Logic: Jika ini anak, ambil nama dari bapaknya (lastParentName)
     const itemsPayload = rows.value.map(r => {
         if (!r.isChild) {
             lastParentName = r.namaBarang;
@@ -197,17 +213,17 @@ const saveNota = async () => {
     if(itemsPayload.length === 0) return alert("Isi minimal 1 solusi/tindakan!");
 
     const payload = {
-        kasirId: 1,
+        kasirId: 1, // Sebaiknya ambil dari user yg login jika ada endpointnya
         kasirNama: localStorage.getItem('username'),
         customerNama: form.value.customerNama,
         customerTelp: form.value.customerTelp,
-        customerAlamat: form.value.customerAlamat, // Kirim Alamat
+        customerAlamat: form.value.customerAlamat,
         tipe: form.value.tipe,
         status: 'PROSES',
-        // Otomatis ambil nama barang dari baris pertama tabel untuk judul Service
         barangCustomer: itemsPayload[0].namaBarang, 
         keluhan: 'Lihat rincian item',
-        items: itemsPayload
+        items: itemsPayload,
+        dp: form.value.dp // TAMBAHAN: Kirim DP ke Backend
     };
 
     try {
@@ -215,7 +231,8 @@ const saveNota = async () => {
         alert("Nota Berhasil Disimpan!");
         router.push('/');
     } catch(e) {
-        alert("Gagal: " + e.message);
+        console.error(e);
+        alert("Gagal: " + (e.response?.data?.message || e.message));
     }
 };
 </script>

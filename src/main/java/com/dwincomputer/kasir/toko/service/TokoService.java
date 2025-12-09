@@ -1,4 +1,4 @@
-package com.dwincomputer.kasir.toko;
+package com.dwincomputer.kasir.toko.service;
 
 import com.dwincomputer.kasir.toko.entity.TokoEntity;
 import com.dwincomputer.kasir.toko.repository.TokoRepository;

@@ -26,7 +26,7 @@
             <i class="bi bi-shield-lock-fill"></i> Admin Panel
           </router-link>
 
-          <button @click="logout" class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded text-sm font-bold transition shadow flex items-center gap-2">
+          <button @click="handleLogout" class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded text-sm font-bold transition shadow flex items-center gap-2">
             <i class="bi bi-box-arrow-right"></i> Logout
           </button>
         </div>
@@ -42,24 +42,44 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import api from './api'; //
+import api from './api'; // Pastikan path ini benar (jika api.js sejajar dengan App.vue)
 
-const router = useRouter(); //
-const userRole = ref(localStorage.getItem('role')); //
-const toko = ref({ namaToko: 'Dwin Computer', logoBase64: null }); //
+const router = useRouter();
+const userRole = ref(localStorage.getItem('role'));
+const toko = ref({ namaToko: 'Dwin Computer', logoBase64: null });
 
-const logout = () => {
-  localStorage.clear(); //
-  router.push('/login'); //
+// Fungsi Logout
+const handleLogout = async () => {
+  try {
+    // 1. Panggil API logout ke Backend (Hapus Refresh Token di DB)
+    await api.post('/api/auth/logout'); 
+    console.log("Logout backend sukses");
+  } catch (e) {
+    console.log("Token sudah expired atau server mati, paksa logout lokal.");
+  } finally {
+    // 2. Wajib hapus semua jejak di browser (Apapun yang terjadi pada server)
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('role');
+    localStorage.removeItem('username');
+    
+    // 3. Redirect ke login (Pakai window.location agar state bersih total)
+    window.location.href = '/login';
+  }
 };
 
+// Load Data Toko (Logo & Nama)
 onMounted(async () => {
-  if (window.location.pathname !== '/login') { //
+  // Cek apakah user sudah login (punya token) sebelum request data toko
+  const token = localStorage.getItem('accessToken');
+  
+  if (window.location.pathname !== '/login' && token) {
     try {
-      const res = await api.get('/api/admin/toko'); //
-      toko.value = res.data; //
+      // Pastikan endpoint ini PUBLIC atau User punya Token valid
+      const res = await api.get('/api/admin/toko'); 
+      toko.value = res.data;
     } catch(e) {
-      console.log("Gagal load info toko"); //
+      console.log("Gagal load info toko atau belum login");
     }
   }
 });
