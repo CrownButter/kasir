@@ -60,7 +60,41 @@
                 <label class="block font-bold text-sm text-gray-600">Alamat Lengkap</label>
                 <textarea v-model="toko.alamatToko" class="w-full border p-2 rounded h-24 focus:ring-2 focus:ring-blue-500 outline-none resize-none"></textarea>
              </div>
-             <div class="flex justify-end">
+
+             <div class="border-t pt-4 mt-6">
+                <label class="block font-bold text-lg text-gray-800 mb-3 flex items-center gap-2">
+                    <i class="bi bi-credit-card-2-front"></i> Daftar Rekening Bank
+                </label>
+                <div class="bg-gray-50 p-4 rounded-lg border space-y-3">
+                    <div v-if="!toko.daftarRekening || toko.daftarRekening.length === 0" class="text-center text-gray-400 text-sm italic py-2">
+                        Belum ada rekening bank yang ditambahkan.
+                    </div>
+                    
+                    <div v-for="(bank, index) in toko.daftarRekening" :key="index" class="flex flex-col md:flex-row gap-3 items-end border-b pb-3 last:border-0 last:pb-0">
+                        <div class="flex-1 w-full">
+                            <label class="text-xs font-bold text-gray-500">Nama Bank</label>
+                            <input v-model="bank.namaBank" placeholder="BCA / MANDIRI" class="w-full border p-2 rounded text-sm uppercase font-bold"/>
+                        </div>
+                        <div class="flex-1 w-full">
+                            <label class="text-xs font-bold text-gray-500">No. Rekening</label>
+                            <input v-model="bank.noRekening" placeholder="Nomor Rekening" type="number" class="w-full border p-2 rounded text-sm"/>
+                        </div>
+                        <div class="flex-1 w-full">
+                            <label class="text-xs font-bold text-gray-500">Atas Nama</label>
+                            <input v-model="bank.atasNama" placeholder="Nama Pemilik" class="w-full border p-2 rounded text-sm"/>
+                        </div>
+                        <button @click="removeRekening(index)" class="bg-red-100 text-red-600 p-2 rounded hover:bg-red-200 transition h-[38px] w-full md:w-auto flex justify-center items-center">
+                            <i class="bi bi-trash-fill"></i>
+                        </button>
+                    </div>
+
+                    <button @click="addRekening" class="w-full py-2 border-2 border-dashed border-blue-300 text-blue-600 font-bold rounded hover:bg-blue-50 transition flex justify-center items-center gap-2 mt-2">
+                        <i class="bi bi-plus-circle-fill"></i> Tambah Bank Baru
+                    </button>
+                </div>
+             </div>
+
+             <div class="flex justify-end mt-6">
                 <button @click="saveToko" class="bg-blue-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-blue-700 shadow-lg transform transition active:scale-95 flex items-center gap-2">
                    <i class="bi bi-save2"></i> Simpan Perubahan
                 </button>
@@ -193,7 +227,15 @@ const activeTab = ref('TOKO');
 const users = ref([]);
 const laporan = ref([]);
 const newKasir = ref({ username: "", password: "" });
-const toko = ref({ namaToko: "", alamatToko: "", noTelp: "", logoBase64: null });
+
+// Update Struktur Data Toko (tambah daftarRekening)
+const toko = ref({ 
+    namaToko: "", 
+    alamatToko: "", 
+    noTelp: "", 
+    logoBase64: null,
+    daftarRekening: [] // Array untuk menampung banyak bank
+});
 
 // State untuk Filter & Sort
 const filterDate = ref({ start: "", end: "" });
@@ -205,6 +247,22 @@ onMounted(() => {
   loadLaporan();
 });
 
+// --- Logic Bank (Baru) ---
+const addRekening = () => {
+    // Menambah object kosong ke array daftarRekening
+    if(!toko.value.daftarRekening) toko.value.daftarRekening = [];
+    toko.value.daftarRekening.push({
+        namaBank: "",
+        noRekening: "",
+        atasNama: ""
+    });
+};
+
+const removeRekening = (index) => {
+    // Menghapus item berdasarkan index
+    toko.value.daftarRekening.splice(index, 1);
+};
+
 // --- Computed Logic untuk Filter, Sort & Total ---
 const filteredLaporan = computed(() => {
     let data = [...laporan.value];
@@ -214,7 +272,6 @@ const filteredLaporan = computed(() => {
         data = data.filter(item => new Date(item.tanggal) >= new Date(filterDate.value.start));
     }
     if (filterDate.value.end) {
-        // Set end date to end of day to include the day itself
         const endDate = new Date(filterDate.value.end);
         endDate.setHours(23, 59, 59, 999);
         data = data.filter(item => new Date(item.tanggal) <= endDate);
@@ -239,16 +296,12 @@ const totalPendapatan = computed(() => {
 // --- Logic Export PDF ---
 const exportPDF = () => {
     const doc = new jsPDF();
-    
-    // Judul PDF
     doc.setFontSize(18);
     doc.text("Laporan Transaksi", 14, 15);
-    
     doc.setFontSize(10);
     doc.text(`Periode: ${filterDate.value.start || 'Awal'} s/d ${filterDate.value.end || 'Akhir'}`, 14, 22);
     doc.text(`Total Pendapatan: Rp ${formatRupiah(totalPendapatan.value)}`, 14, 27);
 
-    // Tabel
     const tableColumn = ["Tanggal", "No Nota", "Tipe", "Customer", "Status", "Total"];
     const tableRows = filteredLaporan.value.map(nota => [
         new Date(nota.tanggal).toLocaleDateString('id-ID'),
@@ -264,7 +317,7 @@ const exportPDF = () => {
         body: tableRows,
         startY: 32,
         theme: 'grid',
-        headStyles: { fillColor: [41, 128, 185] }, // Warna Biru Header
+        headStyles: { fillColor: [41, 128, 185] },
         foot: [['', '', '', '', 'GRAND TOTAL', `Rp ${formatRupiah(totalPendapatan.value)}`]],
         footStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' }
     });
@@ -277,6 +330,10 @@ const loadToko = async () => {
   try {
     const res = await api.get('/api/admin/toko');
     toko.value = res.data;
+    // Pastikan daftarRekening berupa array (jika null dari DB)
+    if (!toko.value.daftarRekening) {
+        toko.value.daftarRekening = [];
+    }
   } catch(e) { console.error("Gagal load toko"); }
 };
 
@@ -292,8 +349,9 @@ const handleFileUpload = (e) => {
 
 const saveToko = async () => {
   try {
+    // Data toko.value sudah termasuk daftarRekening
     await api.post('/api/admin/toko', toko.value);
-    alert("Pengaturan Toko Berhasil Disimpan!");
+    alert("Pengaturan Toko & Bank Berhasil Disimpan!");
     window.location.reload(); 
   } catch(e) { alert("Gagal Simpan: " + e.message); }
 };
@@ -328,7 +386,7 @@ const loadLaporan = async () => {
   try {
     const res = await api.get('/api/nota');
     if(Array.isArray(res.data)) {
-      laporan.value = res.data; // Tidak perlu sort disini, karena sudah di computed
+      laporan.value = res.data;
     }
   } catch(e) {}
 };
