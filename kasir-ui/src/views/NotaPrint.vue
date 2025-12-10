@@ -58,7 +58,7 @@
         </div>
         <div class="text-center">
             <p class="mb-16">Hormat Kami,</p>
-            <p class="font-bold border-b border-black pb-1 px-4">({{ toko.kasirNama || 'Admin' }})</p>
+            <p class="font-bold border-b border-black pb-1 px-4">({{ nota.kasirNama || 'Admin' }})</p>
         </div>
     </div>
 

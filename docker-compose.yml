@@ -30,7 +30,7 @@ services:
     build: ./kasir-ui
     container_name: kasir-frontend
     ports:
-      - "8081:80"  # We use port 8081 to be safe on CyberPanel
+      - "25102:80"  # We use port 8081 to be safe on CyberPanel
     depends_on:
       - backend
     networks:
