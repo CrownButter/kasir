@@ -25,6 +25,12 @@
           <router-link v-if="userRole === 'ADMIN'" to="/admin" class="bg-blue-800 hover:bg-blue-900 px-3 py-2 rounded transition text-sm font-bold shadow flex items-center gap-2">
             <i class="bi bi-shield-lock-fill"></i> Admin Panel
           </router-link>
+          <router-link to="/profile" class="flex items-center gap-2 hover:bg-blue-700 px-3 py-2 rounded transition" title="Lihat Profil Saya">
+             <div class="w-8 h-8 bg-blue-800 rounded-full flex items-center justify-center text-xs font-bold border border-blue-400">
+                 <i class="bi bi-person-fill"></i>
+             </div>
+             <span class="text-sm font-bold hidden md:inline">{{ username || 'User' }}</span>
+        </router-link>
 
           <button @click="handleLogout" class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded text-sm font-bold transition shadow flex items-center gap-2">
             <i class="bi bi-box-arrow-right"></i> Logout
@@ -83,4 +89,5 @@ onMounted(async () => {
     }
   }
 });
+const username = ref(localStorage.getItem('username'));
 </script>

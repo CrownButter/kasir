@@ -23,11 +23,11 @@ public class NotaService {
     private final NotaRepository notaRepo;
     private final ItemRepository itemRepo;
 
-    // === TAMBAHAN BARU: AMBIL SEMUA DATA ===
-    public List<NotaEntity> getAll() {
-        return notaRepo.findAll();
+    public List<NotaEntity> getAll() { return notaRepo.findAll(); }
+
+    public NotaEntity get(Long id) {
+        return notaRepo.findById(id).orElseThrow(() -> new RuntimeException("Nota tidak ditemukan"));
     }
-    // =======================================
 
     private String generateNomorSeri() {
         LocalDate today = LocalDate.now();
@@ -44,7 +44,6 @@ public class NotaService {
     @Transactional
     public NotaEntity create(CreateNotaRequest req) {
         String nomorSeri = generateNomorSeri();
-
         NotaEntity nota = NotaEntity.builder()
                 .nomorSeri(nomorSeri)
                 .kodeNota("NT-" + nomorSeri)
@@ -52,8 +51,8 @@ public class NotaService {
                 .kasirId(req.getKasirId())
                 .kasirNama(req.getKasirNama())
                 .customerNama(req.getCustomerNama())
-                .customerAlamat(req.getCustomerAlamat())
                 .customerTelp(req.getCustomerTelp())
+                .customerAlamat(req.getCustomerAlamat())
                 .tipe(req.getTipe())
                 .status(req.getStatus())
                 .barangCustomer(req.getBarangCustomer())
@@ -61,12 +60,74 @@ public class NotaService {
                 .dp(req.getDp() == null ? BigDecimal.ZERO : req.getDp())
                 .build();
 
+        processItems(nota, req.getItems());
+        return notaRepo.save(nota);
+    }
+
+    @Transactional
+    public NotaEntity update(Long id, CreateNotaRequest req) {
+        NotaEntity nota = get(id);
+
+        // 1. Return Stok Lama
+        for (NotaSnapshotEntity oldItem : nota.getSnapshots()) {
+            if (oldItem.getItemId() != null) {
+                ItemEntity gudangItem = itemRepo.findById(oldItem.getItemId()).orElse(null);
+                if (gudangItem != null) {
+                    gudangItem.setStok(gudangItem.getStok() + oldItem.getJumlah());
+                    itemRepo.save(gudangItem);
+                }
+            }
+        }
+        // 2. Clear Snapshot
+        nota.getSnapshots().clear();
+
+        // 3. Update Header
+        nota.setCustomerNama(req.getCustomerNama());
+        nota.setCustomerTelp(req.getCustomerTelp());
+        nota.setCustomerAlamat(req.getCustomerAlamat());
+        nota.setBarangCustomer(req.getBarangCustomer());
+        nota.setKeluhan(req.getKeluhan());
+        nota.setDp(req.getDp() == null ? BigDecimal.ZERO : req.getDp());
+        // Status sebaiknya tidak diupdate via PUT full edit jika sudah ada tombol quick action,
+        // tapi jika ingin tetap bisa, biarkan baris di bawah:
+        // nota.setStatus(req.getStatus());
+
+        // 4. Process Item Baru
+        processItems(nota, req.getItems());
+
+        return notaRepo.save(nota);
+    }
+
+    // --- HELPER CRITICAL: PROCESS ITEMS & STOCK & MODAL ---
+    private void processItems(NotaEntity nota, List<CreateNotaRequest.CreateNotaItem> items) {
         BigDecimal total = BigDecimal.ZERO;
 
-        if (req.getItems() != null) {
-            for (CreateNotaRequest.CreateNotaItem it : req.getItems()) {
+        if (items != null) {
+            for (CreateNotaRequest.CreateNotaItem it : items) {
                 BigDecimal subtotal = it.getHargaSatuan().multiply(BigDecimal.valueOf(it.getJumlah()));
                 total = total.add(subtotal);
+
+                BigDecimal modalTercatat = BigDecimal.ZERO; // Default 0 untuk Jasa
+
+                // JIKA BARANG STOK (Ada ID)
+                if (it.getItemId() != null) {
+                    ItemEntity itemGudang = itemRepo.findById(it.getItemId())
+                            .orElseThrow(() -> new RuntimeException("Barang ID " + it.getItemId() + " tidak ditemukan"));
+
+                    // Cek Stok
+                    if (itemGudang.getStok() < it.getJumlah()) {
+                        throw new RuntimeException("Stok " + itemGudang.getNama() + " habis/kurang!");
+                    }
+
+                    // Ambil Modal dari Master Barang
+                    if (itemGudang.getHargaBeli() != null) {
+                        modalTercatat = itemGudang.getHargaBeli();
+                    }
+
+                    // Potong Stok
+                    itemGudang.setStok(itemGudang.getStok() - it.getJumlah());
+                    itemRepo.save(itemGudang);
+                }
 
                 NotaSnapshotEntity snap = NotaSnapshotEntity.builder()
                         .nota(nota)
@@ -74,35 +135,20 @@ public class NotaService {
                         .namaBarang(it.getNamaBarang())
                         .catatan(it.getCatatan())
                         .hargaSatuan(it.getHargaSatuan())
+                        .modal(modalTercatat) // SIMPAN MODAL DI SINI
                         .jumlah(it.getJumlah())
                         .totalHarga(subtotal)
                         .build();
 
                 nota.getSnapshots().add(snap);
-
-                if (it.getItemId() != null) {
-                    ItemEntity itemGudang = itemRepo.findById(it.getItemId())
-                            .orElseThrow(() -> new RuntimeException("Barang ID " + it.getItemId() + " tidak ditemukan"));
-                    if (itemGudang.getStok() < it.getJumlah()) {
-                        throw new RuntimeException("Stok " + itemGudang.getNama() + " habis!");
-                    }
-                    itemGudang.setStok(itemGudang.getStok() - it.getJumlah());
-                    itemRepo.save(itemGudang);
-                }
             }
         }
-
         nota.setTotal(total);
         nota.setSisa(total.subtract(nota.getDp()));
-
-        return notaRepo.save(nota);
     }
 
-    public NotaEntity get(Long id) {
-        return notaRepo.findById(id).orElseThrow(() -> new RuntimeException("Nota tidak ditemukan"));
-    }
     public void updateStatus(Long id, String newStatus) {
-        NotaEntity nota = get(id); // pakai method get yg sudah ada
+        NotaEntity nota = get(id);
         nota.setStatus(newStatus);
         notaRepo.save(nota);
     }

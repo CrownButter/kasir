@@ -13,6 +13,7 @@ import java.util.Map;
 @RequestMapping("/api/nota")
 @RequiredArgsConstructor
 public class NotaController {
+
     private final NotaService notaService;
 
     @GetMapping
@@ -20,21 +21,27 @@ public class NotaController {
         return ResponseEntity.ok(notaService.getAll());
     }
 
-    // Fix: Tambahkan @Valid
+    @GetMapping("/{id}")
+    public ResponseEntity<?> get(@PathVariable Long id) {
+        return ResponseEntity.ok(notaService.get(id));
+    }
+
     @PostMapping
     public ResponseEntity<?> create(@Valid @RequestBody CreateNotaRequest req) {
         return ResponseEntity.ok(notaService.create(req));
     }
+
+    // --- ENDPOINT BARU: EDIT NOTA ---
+    @PutMapping("/{id}")
+    public ResponseEntity<?> update(@PathVariable Long id, @Valid @RequestBody CreateNotaRequest req) {
+        return ResponseEntity.ok(notaService.update(id, req));
+    }
+    // --------------------------------
 
     @PutMapping("/{id}/status")
     public ResponseEntity<?> updateStatus(@PathVariable Long id, @RequestBody Map<String, String> body) {
         String newStatus = body.get("status");
         notaService.updateStatus(id, newStatus);
         return ResponseEntity.ok(Map.of("message", "Status berhasil diupdate"));
-    }
-
-    @GetMapping("/{id}")
-    public ResponseEntity<?> get(@PathVariable Long id) {
-        return ResponseEntity.ok(notaService.get(id));
     }
 }
