@@ -16,43 +16,61 @@
                 <th class="p-4 font-bold">No. Nota</th>
                 <th class="p-4 font-bold">Tanggal</th>
                 <th class="p-4 font-bold">Customer</th>
-                <th class="p-4 font-bold">Status</th>
-                <th class="p-4 font-bold">Total</th>
-                <th class="p-4 font-bold text-center">Aksi</th>
+                <th class="p-4 font-bold text-center">Status</th>
+                <th class="p-4 font-bold text-right">Total</th>
+                <th class="p-4 font-bold text-center w-48">Aksi</th>
              </tr>
           </thead>
           <tbody>
              <tr v-for="nota in listNota" :key="nota.id" class="border-b hover:bg-gray-50">
                 <td class="p-4 font-mono text-blue-600 font-bold">{{ nota.kodeNota }}</td>
+                
                 <td class="p-4">
-                    {{ formatDate(nota.tanggal) }}
-                    <div class="text-xs text-gray-500 flex items-center gap-1 mt-1">
-                       <i class="bi bi-box"></i> {{ nota.barangCustomer || '-' }}
-                    </div>
+                   {{ formatDate(nota.tanggal) }}
+                   <div class="text-xs text-gray-500 flex items-center gap-1 mt-1">
+                      <i class="bi bi-box"></i> {{ nota.barangCustomer || '-' }}
+                   </div>
                 </td>
+                
                 <td class="p-4 font-bold">{{ nota.customerNama }}</td>
-                <td class="p-4">
-                   <select :value="nota.status" :class="getStatusColor(nota.status)" @change="confirmStatusChange(nota, $event)" class="px-2 py-1 rounded text-xs font-bold border-2 cursor-pointer outline-none w-32 shadow-sm">
-                      <option value="PROSES">PROSES</option>
-                      <option value="PENDING">PENDING</option>
-                      <option value="SELESAI">SELESAI</option>
-                      <option value="LUNAS">LUNAS</option>
-                      <option value="BATAL">BATAL</option>
-                   </select>
-                </td>
-                <td class="p-4 font-bold">Rp {{ formatRupiah(nota.total) }}</td>
+                
                 <td class="p-4 text-center">
-                   <button @click="selectedNotaId = nota.id" class="bg-gray-800 text-white px-3 py-1 rounded text-sm hover:bg-black flex items-center gap-2 mx-auto">
-                      <i class="bi bi-file-earmark-pdf-fill"></i> PDF
-                   </button>
+                   <span :class="getStatusColor(nota.status)" class="px-3 py-1 rounded-full text-xs font-bold border inline-block shadow-sm">
+                      {{ nota.status }}
+                   </span>
+                </td>
+                
+                <td class="p-4 font-bold text-right">Rp {{ formatRupiah(nota.total) }}</td>
+                
+                <td class="p-4 text-center">
+                   <div class="flex justify-center gap-2">
+                       <button @click="openDetail(nota.id)" class="bg-cyan-600 text-white p-2 rounded hover:bg-cyan-700 shadow" title="Lihat Detail & Update Status">
+                           <i class="bi bi-eye-fill"></i>
+                       </button>
+
+                       <button @click="selectedPrintId = nota.id" class="bg-gray-800 text-white p-2 rounded hover:bg-black shadow" title="Cetak PDF">
+                          <i class="bi bi-printer-fill"></i>
+                       </button>
+                       
+                       <button @click="$router.push(`/edit/${nota.id}`)" class="bg-yellow-500 text-white p-2 rounded hover:bg-yellow-600 shadow" title="Edit Data Nota">
+                           <i class="bi bi-pencil-square"></i>
+                       </button>
+                   </div>
                 </td>
              </tr>
           </tbody>
        </table>
     </div>
 
-    <div v-if="selectedNotaId" class="fixed inset-0 z-50 bg-black bg-opacity-80 flex items-center justify-center p-4">
-       <NotaPrint :notaId="selectedNotaId" @close="selectedNotaId = null" />
+    <NotaDetailModal 
+        v-if="selectedDetailId" 
+        :notaId="selectedDetailId" 
+        @close="selectedDetailId = null" 
+        @refresh="fetchData" 
+    />
+
+    <div v-if="selectedPrintId" class="fixed inset-0 z-50 bg-black bg-opacity-80 flex items-center justify-center p-4">
+       <NotaPrint :notaId="selectedPrintId" @close="selectedPrintId = null" />
     </div>
   </div>
 </template>
@@ -61,9 +79,11 @@
 import { ref, onMounted } from 'vue';
 import api from '../api';
 import NotaPrint from './NotaPrint.vue';
+import NotaDetailModal from '../components/NotaDetailModal.vue'; // Import komponen baru
 
 const listNota = ref([]);
-const selectedNotaId = ref(null);
+const selectedPrintId = ref(null);
+const selectedDetailId = ref(null); // State untuk modal detail
 
 onMounted(async () => { fetchData(); });
 
@@ -76,21 +96,8 @@ const fetchData = async () => {
   } catch (e) { console.error(e); }
 };
 
-const confirmStatusChange = async (nota, event) => {
-  const newStatus = event.target.value;
-  const oldStatus = nota.status;
-  
-  if (confirm(`Apakah Anda yakin ingin mengubah status menjadi "${newStatus}"?`)) {
-    try {
-      await api.put(`/api/nota/${nota.id}/status`, { status: newStatus });
-      nota.status = newStatus;
-    } catch (e) {
-      alert("Gagal menghubungi server!");
-      event.target.value = oldStatus; 
-    }
-  } else {
-    event.target.value = oldStatus;
-  }
+const openDetail = (id) => {
+    selectedDetailId.value = id;
 };
 
 const getStatusColor = (status) => {
@@ -104,9 +111,9 @@ const getStatusColor = (status) => {
   }
 };
 
-const formatDate = (dateStr) => {
-  if(!dateStr) return '-';
-  return new Date(dateStr).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute:'2-digit' });
+const formatDate = (d) => {
+  if(!d) return '-';
+  return new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute:'2-digit' });
 };
 
 const formatRupiah = (val) => new Intl.NumberFormat('id-ID').format(val || 0);

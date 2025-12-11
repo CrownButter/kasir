@@ -2,7 +2,6 @@ package com.dwincomputer.kasir.item.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.math.BigDecimal;
 
 @Entity
@@ -10,12 +9,20 @@ import java.math.BigDecimal;
 @Data @Builder
 @NoArgsConstructor @AllArgsConstructor
 public class ItemEntity {
-
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private String nama;
-    private String kode;
-    private BigDecimal harga;
+
+    @Column(unique = true)
+    private String kode; // Pastikan kode unik
+
+    private BigDecimal harga; // Harga Jual
+
+    // [BARU] Field Modal/HPP
+    @Column(precision = 19, scale = 2)
+    private BigDecimal hargaBeli;
+
     private Integer stok;
 }

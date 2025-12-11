@@ -12,7 +12,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-// Import BARU ini wajib ada untuk logout
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -39,35 +38,27 @@ public class AuthService {
         if (userRepo.findByUsername(req.getUsername()).isPresent()) {
             throw new RuntimeException("Username '" + req.getUsername() + "' sudah digunakan!");
         }
-
         User user = User.builder()
                 .username(req.getUsername())
                 .password(encoder.encode(req.getPassword()))
                 .role(req.getRole())
                 .build();
         userRepo.save(user);
-
-        return UserResponse.builder()
-                .id(user.getId())
-                .username(user.getUsername())
-                .role(user.getRole())
-                .build();
+        return UserResponse.builder().id(user.getId()).username(user.getUsername()).role(user.getRole()).build();
     }
 
     @Transactional
     public LoginResponse login(LoginRequest req) {
-        authManager.authenticate(
-                new UsernamePasswordAuthenticationToken(req.getUsername(), req.getPassword())
-        );
-
+        // 1. Authenticate
+        authManager.authenticate(new UsernamePasswordAuthenticationToken(req.getUsername(), req.getPassword()));
         User user = userRepo.findByUsername(req.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Generate Access Token
-        String accessToken = jwtService.generateToken(user);
-
-        // Generate Refresh Token
+        // 2. Buat Refresh Token DULUAN (Overwrite logic)
         RefreshToken refreshToken = createRefreshToken(user.getId());
+
+        // 3. Generate Access Token (Bawa ID Refresh Token)
+        String accessToken = jwtService.generateToken(user, refreshToken.getToken());
 
         return LoginResponse.builder()
                 .accessToken(accessToken)
@@ -77,36 +68,42 @@ public class AuthService {
                 .build();
     }
 
-    // === REFRESH TOKEN LOGIC ===
+    // Logic Overwrite (Update existing, jangan delete)
+    public RefreshToken createRefreshToken(Long userId) {
+        User user = userRepo.findById(userId).get();
+        Optional<RefreshToken> existingToken = refreshTokenRepo.findByUser(user);
+        RefreshToken refreshToken;
+
+        if (existingToken.isPresent()) {
+            // Update token lama (Single Session Enforcement)
+            refreshToken = existingToken.get();
+            refreshToken.setToken(UUID.randomUUID().toString());
+            refreshToken.setExpiryDate(Instant.now().plusMillis(refreshTokenDurationMs));
+        } else {
+            // Buat baru
+            refreshToken = RefreshToken.builder()
+                    .user(user)
+                    .expiryDate(Instant.now().plusMillis(refreshTokenDurationMs))
+                    .token(UUID.randomUUID().toString())
+                    .build();
+        }
+        return refreshTokenRepo.save(refreshToken);
+    }
 
     public TokenRefreshResponse refreshToken(TokenRefreshRequest request) {
         String requestRefreshToken = request.getRefreshToken();
-
         return findByToken(requestRefreshToken)
                 .map(this::verifyExpiration)
                 .map(RefreshToken::getUser)
                 .map(user -> {
-                    String token = jwtService.generateToken(user);
+                    // Saat refresh, Access Token baru harus tetap membawa ID Refresh Token yang sama
+                    String token = jwtService.generateToken(user, requestRefreshToken);
                     return TokenRefreshResponse.builder()
                             .accessToken(token)
                             .refreshToken(requestRefreshToken)
                             .build();
                 })
                 .orElseThrow(() -> new RuntimeException("Refresh token tidak valid atau sudah expired!"));
-    }
-
-    public RefreshToken createRefreshToken(Long userId) {
-        User user = userRepo.findById(userId).get();
-        // Hapus token lama agar single session (opsional)
-        refreshTokenRepo.deleteByUser(user);
-
-        RefreshToken refreshToken = RefreshToken.builder()
-                .user(user)
-                .expiryDate(Instant.now().plusMillis(refreshTokenDurationMs))
-                .token(UUID.randomUUID().toString())
-                .build();
-
-        return refreshTokenRepo.save(refreshToken);
     }
 
     public Optional<RefreshToken> findByToken(String token) {

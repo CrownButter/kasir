@@ -39,12 +39,21 @@ const toko = ref({});
 
 // Load data toko
 onMounted(async () => {
-    try {
-        const res = await api.get('/api/admin/toko');
-        toko.value = res.data;
-    } catch(e) {
-        console.log("Offline / Backend mati / Belum setup toko");
-    }
+  // --- PENAMBAHAN: Cek Token ---
+  const token = localStorage.getItem('accessToken');
+  if (token) {
+    // Jika token ada, langsung lempar ke dashboard
+    router.replace('/'); 
+    return;
+  }
+  // -----------------------------
+
+  try {
+    const res = await api.get('/api/admin/toko');
+    toko.value = res.data;
+  } catch(e) {
+    console.log("Offline / Backend mati / Belum setup toko");
+  }
 });
 
 const handleLogin = async () => {

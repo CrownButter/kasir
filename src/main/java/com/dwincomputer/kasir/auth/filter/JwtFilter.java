@@ -1,5 +1,7 @@
 package com.dwincomputer.kasir.auth.filter;
 
+import com.dwincomputer.kasir.auth.entity.RefreshToken;
+import com.dwincomputer.kasir.auth.repository.RefreshTokenRepository;
 import com.dwincomputer.kasir.auth.service.JwtService;
 import com.dwincomputer.kasir.auth.service.UserService;
 import jakarta.servlet.FilterChain;
@@ -22,6 +24,7 @@ public class JwtFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final UserService userService;
+    private final RefreshTokenRepository refreshTokenRepo; // [BARU] Inject Repo
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -33,11 +36,7 @@ public class JwtFilter extends OncePerRequestFilter {
         final String jwt;
         final String username;
 
-        // DEBUG LOG 1
-        System.out.println(">>> JWT FILTER TRIGGERED untuk URL: " + request.getRequestURI());
-
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            System.out.println(">>> TOKEN TIDAK DITEMUKAN ATAU FORMAT SALAH");
             filterChain.doFilter(request, response);
             return;
         }
@@ -45,31 +44,39 @@ public class JwtFilter extends OncePerRequestFilter {
         try {
             jwt = authHeader.substring(7);
             username = jwtService.extractUsername(jwt);
-            System.out.println(">>> USERNAME DARI TOKEN: " + username);
 
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-
-                // Cek apakah user ada di DB
                 UserDetails userDetails = this.userService.loadUserByUsername(username);
-                System.out.println(">>> USER DITEMUKAN DI DB: " + userDetails.getUsername());
 
-                // Validasi Token
+                //  SECURITY CHECK REAL-TIME ---
+                // 1. Ambil ID yang tertanam di Access Token user
+                String ridInToken = jwtService.extractRefreshTokenId(jwt);
+
+                // 2. Ambil Refresh Token User yang AKTIF di Database
+                com.dwincomputer.kasir.auth.entity.User userEntity =
+                        (com.dwincomputer.kasir.auth.entity.User) userDetails;
+
+                RefreshToken dbRefreshToken = refreshTokenRepo.findByUser(userEntity).orElse(null);
+
+                // 3. PENOLAKAN KERAS (Hard Reject)
+                // Jika di DB kosong (terhapus manual) ATAU string token beda (ditimpa user lain)
+                if (dbRefreshToken == null || !dbRefreshToken.getToken().equals(ridInToken)) {
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); // 401
+                    response.getWriter().write("Sesi kadaluarsa atau login di device lain.");
+                    return; // Stop request, jangan lanjut ke Controller
+                }
+                // ---------------------------------------------
+
                 if (jwtService.validateToken(jwt, userDetails)) {
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                            userDetails,
-                            null,
-                            userDetails.getAuthorities()
+                            userDetails, null, userDetails.getAuthorities()
                     );
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
-                    System.out.println(">>> AUTENTIKASI SUKSES! SecurityContext di-set.");
-                } else {
-                    System.out.println(">>> VALIDASI TOKEN GAGAL (Mungkin expired atau secret key beda)");
                 }
             }
         } catch (Exception e) {
-            System.out.println(">>> ERROR DI JWT FILTER: " + e.getMessage());
-            e.printStackTrace(); // Agar kita lihat error lengkapnya
+            System.out.println(">>> ERROR JWT FILTER: " + e.getMessage());
         }
 
         filterChain.doFilter(request, response);
