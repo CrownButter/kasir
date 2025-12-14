@@ -59,18 +59,18 @@ public class PdfService {
                 document.addPage(page);
 
                 try (PDPageContentStream content = new PDPageContentStream(document, page)) {
-                    // Margin Atas
-                    float marginTop = 40;
+                    // [SCALE DOWN] Margin diperbesar agar konten di tengah mengecil
+                    float marginTop = 60; // Sebelumnya 40
                     float y = page.getMediaBox().getHeight() - marginTop;
-                    float margin = 40;
+                    float margin = 60;    // Sebelumnya 40
                     float width = page.getMediaBox().getWidth() - 2 * margin;
 
                     // ==========================================
-                    // HEADER SECTION (Logo & Teks)
+                    // HEADER SECTION
                     // ==========================================
                     float logoBottomY = y;
                     float usedLogoWidth = 0;
-                    float logoHeight = 50;
+                    float logoHeight = 42; // [SCALE DOWN] Tinggi logo 50 -> 42
 
                     // A. Render Logo (Kiri)
                     if (toko.getLogoBase64() != null && !toko.getLogoBase64().isEmpty()) {
@@ -84,13 +84,11 @@ public class PdfService {
                             float scale = logoHeight / image.getHeight();
                             float logoWidth = image.getWidth() * scale;
 
-                            // [FIX] Posisi Logo DINAIKKAN (+15)
-                            // Di PDFBox, Y semakin besar = Semakin ke ATAS kertas
-                            content.drawImage(image, margin, y - logoHeight + 15, logoWidth, logoHeight);
+                            // Posisi Logo Naik (+12) menyesuaikan skala baru
+                            content.drawImage(image, margin, y - logoHeight + 12, logoWidth, logoHeight);
 
-                            // Update batas bawah logo untuk perhitungan garis
                             logoBottomY = y - logoHeight;
-                            usedLogoWidth = logoWidth + 20;
+                            usedLogoWidth = logoWidth + 15; // Padding diperkecil sedikit
                         } catch (Exception e) {
                             log.error("Gagal render logo", e);
                         }
@@ -100,146 +98,157 @@ public class PdfService {
                     float remainingWidth = width - usedLogoWidth;
                     float textCenterX = margin + usedLogoWidth + (remainingWidth / 2);
 
-                    // Kita naikkan sedikit posisi teks header agar sejajar visual dengan logo
-                    float textY = y + 8;
+                    float textY = y + 5;
 
                     String namaToko = toko.getNamaToko() != null ? toko.getNamaToko() : "";
                     if (!namaToko.isEmpty()) {
-                        textY = drawCenterText(content, namaToko, textCenterX, textY, 18, FONT_BOLD);
-                        textY -= 15;
+                        // [SCALE DOWN] Font 18 -> 16, Spasi 15 -> 12
+                        textY = drawCenterText(content, namaToko, textCenterX, textY, 16, FONT_BOLD);
+                        textY -= 12;
                     }
 
                     String alamatToko = toko.getAlamatToko() != null ? toko.getAlamatToko() : "";
                     if (!alamatToko.isEmpty()) {
-                        textY = drawCenterText(content, alamatToko, textCenterX, textY, 10, FONT_PLAIN);
-                        textY -= 12;
+                        // [SCALE DOWN] Font 10 -> 9, Spasi 12 -> 10
+                        textY = drawCenterText(content, alamatToko, textCenterX, textY, 9, FONT_PLAIN);
+                        textY -= 10;
                     }
 
                     if (toko.getNoTelp() != null && !toko.getNoTelp().isEmpty()) {
-                        textY = drawCenterText(content, "Telp: " + toko.getNoTelp(), textCenterX, textY, 10, FONT_PLAIN);
+                        // [SCALE DOWN] Font 10 -> 9
+                        textY = drawCenterText(content, "Telp: " + toko.getNoTelp(), textCenterX, textY, 9, FONT_PLAIN);
                     }
 
-                    // Tentukan posisi Y selanjutnya (Garis di bawah elemen terendah)
                     y = Math.min(logoBottomY, textY);
-                    y -= 15;
+                    y -= 12; // Spasi ke garis diperkecil
 
                     // Garis Header
                     content.setStrokingColor(Color.BLACK);
                     content.moveTo(margin, y);
                     content.lineTo(margin + width, y);
                     content.stroke();
-                    y -= 25;
+                    y -= 20; // Spasi setelah garis
 
                     // ==========================================
-                    // INFO NOTA & CUSTOMER
+                    // INFO NOTA & CUSTOMER ([SCALE DOWN] Font 10 -> 9, Spasi diperapat)
                     // ==========================================
-                    float col2X = margin + 350; // Kolom Kanan
+                    float col2X = margin + 320; // Geser kolom kanan sedikit karena margin melebar
+                    int fontInfo = 9;
 
-                    drawText(content, "No. Nota", margin, y, 10, FONT_BOLD);
-                    drawText(content, ": " + nota.getKodeNota(), margin + 60, y, 10, FONT_PLAIN);
-                    drawText(content, "Kepada Yth.", col2X, y, 10, FONT_BOLD);
-                    y -= 14;
+                    drawText(content, "No. Nota", margin, y, fontInfo, FONT_BOLD);
+                    drawText(content, ": " + nota.getKodeNota(), margin + 55, y, fontInfo, FONT_PLAIN);
+                    drawText(content, "Kepada Yth.", col2X, y, fontInfo, FONT_BOLD);
+                    y -= 12; // Spasi 14 -> 12
 
-                    drawText(content, "Tanggal", margin, y, 10, FONT_BOLD);
-                    drawText(content, ": " + nota.getTanggal().format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm")), margin + 60, y, 10, FONT_PLAIN);
-                    drawText(content, nota.getCustomerNama(), col2X, y, 10, FONT_PLAIN);
-                    y -= 14;
+                    drawText(content, "Tanggal", margin, y, fontInfo, FONT_BOLD);
+                    drawText(content, ": " + nota.getTanggal().format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm")), margin + 55, y, fontInfo, FONT_PLAIN);
+                    drawText(content, nota.getCustomerNama(), col2X, y, fontInfo, FONT_PLAIN);
+                    y -= 12;
 
-                    drawText(content, "Kasir", margin, y, 10, FONT_BOLD);
-                    drawText(content, ": " + nota.getKasirNama(), margin + 60, y, 10, FONT_PLAIN);
+                    drawText(content, "Kasir", margin, y, fontInfo, FONT_BOLD);
+                    drawText(content, ": " + nota.getKasirNama(), margin + 55, y, fontInfo, FONT_PLAIN);
                     if (nota.getCustomerAlamat() != null) {
-                        drawText(content, nota.getCustomerAlamat(), col2X, y, 10, FONT_PLAIN);
+                        drawText(content, nota.getCustomerAlamat(), col2X, y, fontInfo, FONT_PLAIN);
                     }
-                    y -= 25;
+                    y -= 20; // Jarak ke tabel
 
                     // ==========================================
-                    // TABEL ITEM
+                    // TABEL ITEM ([SCALE DOWN])
                     // ==========================================
-                    float[] colWidths = {30, 260, 60, 100, 120};
+                    // Lebar kolom disesuaikan dengan width baru yang lebih sempit
+                    float[] colWidths = {25, 240, 50, 90, 110};
                     String[] headers = {"No", "Nama Barang", "Qty", "Harga", "Subtotal"};
+                    int fontTable = 9; // Font tabel 10 -> 9
 
+                    // Header Background (Tinggi 18 -> 15)
                     content.setNonStrokingColor(new Color(230, 230, 230));
-                    content.addRect(margin, y - 12, width, 18);
+                    content.addRect(margin, y - 10, width, 15);
                     content.fill();
                     content.setNonStrokingColor(Color.BLACK);
 
+                    // Header Text
                     float currentX = margin;
                     for (int i = 0; i < headers.length; i++) {
-                        if (i >= 3) drawRightText(content, headers[i], currentX + colWidths[i] - 5, y - 10, 10, FONT_BOLD);
-                        else drawText(content, headers[i], currentX + 5, y - 10, 10, FONT_BOLD);
+                        if (i >= 3) drawRightText(content, headers[i], currentX + colWidths[i] - 5, y - 8, fontTable, FONT_BOLD);
+                        else drawText(content, headers[i], currentX + 5, y - 8, fontTable, FONT_BOLD);
                         currentX += colWidths[i];
                     }
-                    y -= 20;
+                    y -= 15; // Turun setelah header
 
+                    // Isi Item
                     int no = 1;
                     NumberFormat rp = NumberFormat.getCurrencyInstance(Locale.forLanguageTag("id-ID"));
 
                     for (NotaSnapshotEntity item : nota.getSnapshots()) {
                         currentX = margin;
 
-                        drawText(content, String.valueOf(no++), currentX + 5, y - 10, 10, FONT_PLAIN);
+                        drawText(content, String.valueOf(no++), currentX + 5, y - 8, fontTable, FONT_PLAIN);
                         currentX += colWidths[0];
 
                         String namaBarang = item.getNamaBarang();
                         if (namaBarang.length() > 45) namaBarang = namaBarang.substring(0, 45) + "...";
-                        drawText(content, namaBarang, currentX + 5, y - 10, 10, FONT_PLAIN);
+                        drawText(content, namaBarang, currentX + 5, y - 8, fontTable, FONT_PLAIN);
                         currentX += colWidths[1];
 
-                        drawText(content, String.valueOf(item.getJumlah()), currentX + 5, y - 10, 10, FONT_PLAIN);
+                        drawText(content, String.valueOf(item.getJumlah()), currentX + 5, y - 8, fontTable, FONT_PLAIN);
                         currentX += colWidths[2];
 
-                        drawRightText(content, rp.format(item.getHargaSatuan()).replace("Rp", ""), currentX + colWidths[3] - 5, y - 10, 10, FONT_PLAIN);
+                        drawRightText(content, rp.format(item.getHargaSatuan()).replace("Rp", ""), currentX + colWidths[3] - 5, y - 8, fontTable, FONT_PLAIN);
                         currentX += colWidths[3];
 
-                        drawRightText(content, rp.format(item.getTotalHarga()).replace("Rp", ""), currentX + colWidths[4] - 5, y - 10, 10, FONT_PLAIN);
+                        drawRightText(content, rp.format(item.getTotalHarga()).replace("Rp", ""), currentX + colWidths[4] - 5, y - 8, fontTable, FONT_PLAIN);
 
-                        y -= 15;
+                        y -= 12; // Tinggi baris 15 -> 12
                         content.setStrokingColor(new Color(220, 220, 220));
                         content.moveTo(margin, y);
                         content.lineTo(margin + width, y);
                         content.stroke();
                         content.setStrokingColor(Color.BLACK);
-                        y -= 5;
+                        y -= 4; // Spasi antar item
                     }
-                    y -= 15;
+                    y -= 10;
 
                     // ==========================================
-                    // FOOTER
+                    // FOOTER ([SCALE DOWN] Font dan Spasi)
                     // ==========================================
                     float footerStartY = y;
-                    float startTotalX = margin + width - 180;
+                    float startTotalX = margin + width - 160;
 
-                    drawText(content, "Total :", startTotalX, y, 12, FONT_BOLD);
-                    drawRightText(content, rp.format(nota.getTotal()), margin + width, y, 12, FONT_BOLD);
-                    y -= 18;
+                    // 1. TOTAL (Kanan) - Font 12 -> 10, Font 10 -> 9
+                    drawText(content, "Total :", startTotalX, y, 10, FONT_BOLD);
+                    drawRightText(content, rp.format(nota.getTotal()), margin + width, y, 10, FONT_BOLD);
+                    y -= 15;
 
                     if (nota.getDp() != null && nota.getDp().compareTo(BigDecimal.ZERO) > 0) {
-                        drawText(content, "DP/Bayar :", startTotalX, y, 10, FONT_PLAIN);
-                        drawRightText(content, rp.format(nota.getDp()), margin + width, y, 10, FONT_PLAIN);
-                        y -= 14;
-                        drawText(content, "Sisa/Kembali :", startTotalX, y, 10, FONT_PLAIN);
-                        drawRightText(content, rp.format(nota.getSisa()), margin + width, y, 10, FONT_PLAIN);
-                        y -= 18;
+                        drawText(content, "DP/Bayar :", startTotalX, y, 9, FONT_PLAIN);
+                        drawRightText(content, rp.format(nota.getDp()), margin + width, y, 9, FONT_PLAIN);
+                        y -= 12;
+                        drawText(content, "Sisa/Kembali :", startTotalX, y, 9, FONT_PLAIN);
+                        drawRightText(content, rp.format(nota.getSisa()), margin + width, y, 9, FONT_PLAIN);
+                        y -= 15;
                     }
                     float rightColumnLastY = y;
 
+                    // 2. BANK (Kiri) - Font 9 -> 8
                     y = footerStartY;
+                    int fontBank = 8;
                     if (toko.getDaftarRekening() != null && !toko.getDaftarRekening().isEmpty()) {
-                        drawText(content, "Transfer Pembayaran:", margin, y, 9, FONT_BOLD);
-                        y -= 12;
+                        drawText(content, "Transfer Pembayaran:", margin, y, fontBank, FONT_BOLD);
+                        y -= 10;
                         for (TokoBankEntity bank : toko.getDaftarRekening()) {
-                            drawText(content, bank.getNamaBank() + " - " + bank.getNoRekening(), margin, y, 9, FONT_PLAIN);
+                            drawText(content, bank.getNamaBank() + " - " + bank.getNoRekening(), margin, y, fontBank, FONT_PLAIN);
+                            y -= 10;
+                            drawText(content, "a.n " + bank.getAtasNama(), margin, y, fontBank, FONT_OBLIQUE);
                             y -= 12;
-                            drawText(content, "a.n " + bank.getAtasNama(), margin, y, 9, FONT_OBLIQUE);
-                            y -= 14;
                         }
                     }
 
                     y = Math.min(y, rightColumnLastY);
-                    y -= 20;
+                    y -= 15;
 
-                    drawCenterText(content, "PERHATIAN", y, page, 9, FONT_BOLD);
-                    y -= 12;
+                    // 3. DISCLAIMER (Tengah) - Font 9->8, 8->7
+                    drawCenterText(content, "PERHATIAN", y, page, 8, FONT_BOLD);
+                    y -= 10;
                     String[] warnings = {
                             "Harap tunjukkan Nota ini saat pengambilan.",
                             "Garansi sesuai kerusakan yang sama (Non-Sparepart).",
@@ -247,24 +256,26 @@ public class PdfService {
                             "Barang tidak diambil > 1 bulan diluar tanggung jawab kami."
                     };
                     for (String warn : warnings) {
-                        drawCenterText(content, warn, y, page, 8, FONT_PLAIN);
-                        y -= 10;
+                        drawCenterText(content, warn, y, page, 7, FONT_PLAIN);
+                        y -= 9;
                     }
-                    y -= 25;
+                    y -= 20;
 
-                    // TANDA TANGAN
+                    // 4. TANDA TANGAN - Font 10 -> 9
+                    int fontTTD = 9;
                     float ttdLabelY = y;
-                    drawCenterText(content, "Diterima oleh,", margin + 50, ttdLabelY, 10, FONT_PLAIN);
-                    drawCenterText(content, "Hormat Kami,", margin + width - 50, ttdLabelY, 10, FONT_PLAIN);
+                    drawCenterText(content, "Diterima oleh,", margin + 40, ttdLabelY, fontTTD, FONT_PLAIN);
+                    drawCenterText(content, "Hormat Kami,", margin + width - 40, ttdLabelY, fontTTD, FONT_PLAIN);
 
-                    y -= 50;
+                    y -= 40; // Space TTD 50 -> 40
                     String namaCust = nota.getCustomerNama() != null ? nota.getCustomerNama() : "(.......................)";
                     String namaKasir = nota.getKasirNama() != null ? nota.getKasirNama() : "(.......................)";
-                    drawCenterText(content, "( " + namaCust + " )", margin + 50, y, 10, FONT_PLAIN);
-                    drawCenterText(content, "( " + namaKasir + " )", margin + width - 50, y, 10, FONT_PLAIN);
+                    drawCenterText(content, "( " + namaCust + " )", margin + 40, y, fontTTD, FONT_PLAIN);
+                    drawCenterText(content, "( " + namaKasir + " )", margin + width - 40, y, fontTTD, FONT_PLAIN);
 
-                    y -= 25;
-                    drawCenterText(content, "Terima kasih atas kunjungan Anda.", y, page, 9, FONT_OBLIQUE);
+                    y -= 20;
+                    // Font Footer akhir 9 -> 8
+                    drawCenterText(content, "Terima kasih atas kunjungan Anda.", y, page, 8, FONT_OBLIQUE);
                 }
 
                 ByteArrayOutputStream out = new ByteArrayOutputStream();
