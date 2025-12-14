@@ -25,6 +25,7 @@ import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.time.format.DateTimeFormatter;
 import java.util.Base64;
+import java.util.List;
 import java.util.Locale;
 
 @Slf4j
@@ -35,6 +36,7 @@ public class PdfService {
     private final TokoRepository tokoRepo;
     private final NotaRepository notaRepo;
 
+    // Font Standar
     private final PDType1Font FONT_BOLD = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
     private final PDType1Font FONT_PLAIN = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
     private final PDType1Font FONT_OBLIQUE = new PDType1Font(Standard14Fonts.FontName.HELVETICA_OBLIQUE);
@@ -42,28 +44,29 @@ public class PdfService {
     @Transactional(readOnly = true)
     public byte[] generateNotaPdf(NotaEntity notaParam) throws IOException {
         try {
+            // 1. Re-fetch Nota & Trigger Snapshots (Solusi Lazy Error)
             NotaEntity nota = notaRepo.findById(notaParam.getId())
                     .orElseThrow(() -> new RuntimeException("Nota tidak ditemukan"));
             nota.getSnapshots().size();
 
+            // 2. Fetch Toko
             TokoEntity toko = tokoRepo.findAll().stream().findFirst().orElse(new TokoEntity());
             if (toko.getDaftarRekening() != null) toko.getDaftarRekening().size();
 
+            // 3. Generate PDF
             try (PDDocument document = new PDDocument()) {
+                // Kertas 9.5 x 11 Inch
                 PDRectangle pageSize = new PDRectangle(9.5f * 72, 11f * 72);
                 PDPage page = new PDPage(pageSize);
                 document.addPage(page);
 
                 try (PDPageContentStream content = new PDPageContentStream(document, page)) {
-                    float y = page.getMediaBox().getHeight() - 30;
+                    float y = page.getMediaBox().getHeight() - 30; // Start Y
                     float margin = 40;
                     float width = page.getMediaBox().getWidth() - 2 * margin;
 
-                    // === LOGO & HEADER LAYOUT ===
+                    // === LOGO ===
                     float logoBottomY = y;
-                    float textStartX = margin;
-                    boolean hasLogo = false;
-
                     if (toko.getLogoBase64() != null && !toko.getLogoBase64().isEmpty()) {
                         try {
                             String base64Image = toko.getLogoBase64();
@@ -72,15 +75,13 @@ public class PdfService {
                             byte[] imageBytes = Base64.getDecoder().decode(base64Image);
                             PDImageXObject image = PDImageXObject.createFromByteArray(document, imageBytes, "logo");
 
-                            float logoHeight = 60;
+                            float logoHeight = 40;
                             float scale = logoHeight / image.getHeight();
                             float logoWidth = image.getWidth() * scale;
 
-                            // Logo di kiri
-                            content.drawImage(image, margin, y - logoHeight, logoWidth, logoHeight);
-                            logoBottomY = y - logoHeight - 10;
-                            textStartX = margin + logoWidth + 20; // Text mulai setelah logo
-                            hasLogo = true;
+                            // Posisi Logo Custom
+                            content.drawImage(image, margin, y - logoHeight + 20, logoWidth, logoHeight);
+                            logoBottomY = y - logoHeight;
                         } catch (Exception e) {
                             log.error("Gagal render logo", e);
                         }
@@ -88,37 +89,20 @@ public class PdfService {
 
                     // === HEADER TEXT ===
                     float textY = y;
-                    String namaToko = sanitizeText(toko.getNamaToko());
+                    String namaToko = toko.getNamaToko() != null ? toko.getNamaToko() : "";
                     if (!namaToko.isEmpty()) {
-                        if (hasLogo) {
-                            drawText(content, namaToko, textStartX, textY, 16, FONT_BOLD);
-                            textY -= 15;
-                        } else {
-                            textY = drawCenterText(content, namaToko, textY, page, 16, FONT_BOLD);
-                            textY -= 15;
-                        }
+                        textY = drawCenterText(content, namaToko, textY, page, 16, FONT_BOLD);
+                        textY -= 15;
                     }
 
-                    String alamatToko = sanitizeText(toko.getAlamatToko());
+                    String alamatToko = toko.getAlamatToko() != null ? toko.getAlamatToko() : "";
                     if (!alamatToko.isEmpty()) {
-                        if (hasLogo) {
-                            drawText(content, alamatToko, textStartX, textY, 10, FONT_PLAIN);
-                            textY -= 12;
-                        } else {
-                            textY = drawCenterText(content, alamatToko, textY, page, 10, FONT_PLAIN);
-                            textY -= 12;
-                        }
+                        textY = drawCenterText(content, alamatToko, textY, page, 10, FONT_PLAIN);
+                        textY -= 12;
                     }
 
                     if (toko.getNoTelp() != null && !toko.getNoTelp().isEmpty()) {
-                        String telp = "Telp: " + sanitizeText(toko.getNoTelp());
-                        if (hasLogo) {
-                            drawText(content, telp, textStartX, textY, 10, FONT_PLAIN);
-                            textY -= 10;
-                        } else {
-                            textY = drawCenterText(content, telp, textY, page, 10, FONT_PLAIN);
-                            textY -= 10;
-                        }
+                        textY = drawCenterText(content, "Telp: " + toko.getNoTelp(), textY, page, 10, FONT_PLAIN);
                     }
 
                     y = Math.min(logoBottomY, textY);
@@ -134,19 +118,19 @@ public class PdfService {
                     // === INFO NOTA ===
                     float col2X = margin + 350;
                     drawText(content, "No. Nota", margin, y, 10, FONT_BOLD);
-                    drawText(content, ": " + sanitizeText(nota.getKodeNota()), margin + 60, y, 10, FONT_PLAIN);
+                    drawText(content, ": " + nota.getKodeNota(), margin + 60, y, 10, FONT_PLAIN);
                     drawText(content, "Kepada Yth.", col2X, y, 10, FONT_BOLD);
                     y -= 12;
 
                     drawText(content, "Tanggal", margin, y, 10, FONT_BOLD);
                     drawText(content, ": " + nota.getTanggal().format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm")), margin + 60, y, 10, FONT_PLAIN);
-                    drawText(content, sanitizeText(nota.getCustomerNama()), col2X, y, 10, FONT_PLAIN);
+                    drawText(content, nota.getCustomerNama(), col2X, y, 10, FONT_PLAIN);
                     y -= 12;
 
                     drawText(content, "Kasir", margin, y, 10, FONT_BOLD);
-                    drawText(content, ": " + sanitizeText(nota.getKasirNama()), margin + 60, y, 10, FONT_PLAIN);
+                    drawText(content, ": " + nota.getKasirNama(), margin + 60, y, 10, FONT_PLAIN);
                     if (nota.getCustomerAlamat() != null) {
-                        drawText(content, sanitizeText(nota.getCustomerAlamat()), col2X, y, 10, FONT_PLAIN);
+                        drawText(content, nota.getCustomerAlamat(), col2X, y, 10, FONT_PLAIN);
                     }
                     y -= 20;
 
@@ -176,7 +160,7 @@ public class PdfService {
                         drawText(content, String.valueOf(no++), currentX + 5, y - 10, 10, FONT_PLAIN);
                         currentX += colWidths[0];
 
-                        String namaBarang = sanitizeText(item.getNamaBarang());
+                        String namaBarang = item.getNamaBarang();
                         if (namaBarang.length() > 50) namaBarang = namaBarang.substring(0, 50) + "...";
                         drawText(content, namaBarang, currentX + 5, y - 10, 10, FONT_PLAIN);
                         currentX += colWidths[1];
@@ -222,9 +206,9 @@ public class PdfService {
                         drawText(content, "Transfer Pembayaran:", margin, y, 9, FONT_BOLD);
                         y -= 10;
                         for (TokoBankEntity bank : toko.getDaftarRekening()) {
-                            drawText(content, sanitizeText(bank.getNamaBank()) + " - " + sanitizeText(bank.getNoRekening()), margin, y, 9, FONT_PLAIN);
+                            drawText(content, bank.getNamaBank() + " - " + bank.getNoRekening(), margin, y, 9, FONT_PLAIN);
                             y -= 10;
-                            drawText(content, "a.n " + sanitizeText(bank.getAtasNama()), margin, y, 9, FONT_OBLIQUE);
+                            drawText(content, "a.n " + bank.getAtasNama(), margin, y, 9, FONT_OBLIQUE);
                             y -= 12;
                         }
                     }
@@ -252,8 +236,8 @@ public class PdfService {
                     drawCenterText(content, "Hormat Kami,", margin + width - 50, ttdLabelY, 10, FONT_PLAIN);
 
                     y -= 40;
-                    String namaCust = nota.getCustomerNama() != null ? sanitizeText(nota.getCustomerNama()) : "(.......................)";
-                    String namaKasir = nota.getKasirNama() != null ? sanitizeText(nota.getKasirNama()) : "(.......................)";
+                    String namaCust = nota.getCustomerNama() != null ? nota.getCustomerNama() : "(.......................)";
+                    String namaKasir = nota.getKasirNama() != null ? nota.getKasirNama() : "(.......................)";
                     drawCenterText(content, "( " + namaCust + " )", margin + 50, y, 10, FONT_PLAIN);
                     drawCenterText(content, "( " + namaKasir + " )", margin + width - 50, y, 10, FONT_PLAIN);
 
@@ -271,42 +255,40 @@ public class PdfService {
         }
     }
 
-    /**
-     * Sanitize text to remove control characters that PDFBox cannot encode
-     */
-    private String sanitizeText(String text) {
+    // --- HELPER METHODS DENGAN SANITASI ---
+
+    // [FIX] Method ini membersihkan enter (\n), tab (\t) dan karakter aneh lainnya
+    private String sanitize(String text) {
         if (text == null) return "";
-        return text.replaceAll("[\\p{Cntrl}&&[^\r\n\t]]", "")
-                .replaceAll("[\r\n\t]+", " ")
-                .trim();
+        // Ganti newline dengan spasi agar tidak crash
+        return text.replaceAll("[\\n\\r]", " ").replace("\t", " ");
     }
 
     private void drawText(PDPageContentStream content, String text, float x, float y, int fontSize, PDType1Font font) throws IOException {
-        text = sanitizeText(text);
         content.beginText();
         content.setFont(font, fontSize);
         content.newLineAtOffset(x, y);
-        content.showText(text);
+        content.showText(sanitize(text)); // <--- Gunakan sanitize()
         content.endText();
     }
 
     private void drawRightText(PDPageContentStream content, String text, float x, float y, int fontSize, PDType1Font font) throws IOException {
-        text = sanitizeText(text);
-        float textWidth = font.getStringWidth(text) / 1000 * fontSize;
-        drawText(content, text, x - textWidth, y, fontSize, font);
+        String safeText = sanitize(text); // <--- Gunakan sanitize()
+        float textWidth = font.getStringWidth(safeText) / 1000 * fontSize;
+        drawText(content, safeText, x - textWidth, y, fontSize, font);
     }
 
     private float drawCenterText(PDPageContentStream content, String text, float y, PDPage page, int fontSize, PDType1Font font) throws IOException {
-        text = sanitizeText(text);
-        float textWidth = font.getStringWidth(text) / 1000 * fontSize;
+        String safeText = sanitize(text); // <--- Gunakan sanitize()
+        float textWidth = font.getStringWidth(safeText) / 1000 * fontSize;
         float x = (page.getMediaBox().getWidth() - textWidth) / 2;
-        drawText(content, text, x, y, fontSize, font);
+        drawText(content, safeText, x, y, fontSize, font);
         return y;
     }
 
     private void drawCenterText(PDPageContentStream content, String text, float centerX, float y, int fontSize, PDType1Font font) throws IOException {
-        text = sanitizeText(text);
-        float textWidth = font.getStringWidth(text) / 1000 * fontSize;
-        drawText(content, text, centerX - (textWidth / 2), y, fontSize, font);
+        String safeText = sanitize(text); // <--- Gunakan sanitize()
+        float textWidth = font.getStringWidth(safeText) / 1000 * fontSize;
+        drawText(content, safeText, centerX - (textWidth / 2), y, fontSize, font);
     }
 }
