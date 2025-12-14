@@ -65,8 +65,11 @@ public class PdfService {
                     float margin = 40;
                     float width = page.getMediaBox().getWidth() - 2 * margin;
 
-                    // === LOGO ===
+                    // === [FIX LAYOUT HEADER ANTI-OVERLAP] ===
                     float logoBottomY = y;
+                    float usedLogoWidth = 0; // Lebar yang terpakai oleh logo
+
+                    // 1. GAMBAR LOGO DULU
                     if (toko.getLogoBase64() != null && !toko.getLogoBase64().isEmpty()) {
                         try {
                             String base64Image = toko.getLogoBase64();
@@ -75,40 +78,49 @@ public class PdfService {
                             byte[] imageBytes = Base64.getDecoder().decode(base64Image);
                             PDImageXObject image = PDImageXObject.createFromByteArray(document, imageBytes, "logo");
 
-                            float logoHeight = 40;
+                            float logoHeight = 45; // Tinggi Logo Fixed
                             float scale = logoHeight / image.getHeight();
                             float logoWidth = image.getWidth() * scale;
 
-                            // Posisi Logo Custom
-                            content.drawImage(image, margin, y - logoHeight + 20, logoWidth, logoHeight);
+                            // Gambar Logo di Kiri
+                            content.drawImage(image, margin, y - logoHeight + 10, logoWidth, logoHeight);
+
                             logoBottomY = y - logoHeight;
+                            usedLogoWidth = logoWidth + 15; // Tambah padding 15px safe zone
                         } catch (Exception e) {
                             log.error("Gagal render logo", e);
                         }
                     }
 
-                    // === HEADER TEXT ===
+                    // 2. TULIS TEXT (Di Samping Logo)
+                    // Hitung titik tengah SISA ruangan di sebelah kanan logo
+                    float remainingWidth = width - usedLogoWidth;
+                    float textCenterX = margin + usedLogoWidth + (remainingWidth / 2);
+
                     float textY = y;
+
                     String namaToko = toko.getNamaToko() != null ? toko.getNamaToko() : "";
                     if (!namaToko.isEmpty()) {
-                        textY = drawCenterText(content, namaToko, textY, page, 16, FONT_BOLD);
+                        // Gunakan textCenterX yang baru (Relative Center)
+                        textY = drawCenterText(content, namaToko, textCenterX, textY, 16, FONT_BOLD);
                         textY -= 15;
                     }
 
                     String alamatToko = toko.getAlamatToko() != null ? toko.getAlamatToko() : "";
                     if (!alamatToko.isEmpty()) {
-                        textY = drawCenterText(content, alamatToko, textY, page, 10, FONT_PLAIN);
+                        textY = drawCenterText(content, alamatToko, textCenterX, textY, 10, FONT_PLAIN);
                         textY -= 12;
                     }
 
                     if (toko.getNoTelp() != null && !toko.getNoTelp().isEmpty()) {
-                        textY = drawCenterText(content, "Telp: " + toko.getNoTelp(), textY, page, 10, FONT_PLAIN);
+                        textY = drawCenterText(content, "Telp: " + toko.getNoTelp(), textCenterX, textY, 10, FONT_PLAIN);
                     }
 
+                    // Update Y ke posisi paling bawah antara Logo atau Teks
                     y = Math.min(logoBottomY, textY);
                     y -= 10;
 
-                    // Garis
+                    // Garis Pemisah
                     content.setStrokingColor(Color.BLACK);
                     content.moveTo(margin, y);
                     content.lineTo(margin + width, y);
@@ -255,40 +267,35 @@ public class PdfService {
         }
     }
 
-    // --- HELPER METHODS DENGAN SANITASI ---
-
-    // [FIX] Method ini membersihkan enter (\n), tab (\t) dan karakter aneh lainnya
+    // --- HELPER METHODS ---
     private String sanitize(String text) {
         if (text == null) return "";
-        // Ganti newline dengan spasi agar tidak crash
         return text.replaceAll("[\\n\\r]", " ").replace("\t", " ");
     }
 
     private void drawText(PDPageContentStream content, String text, float x, float y, int fontSize, PDType1Font font) throws IOException {
-        content.beginText();
-        content.setFont(font, fontSize);
-        content.newLineAtOffset(x, y);
-        content.showText(sanitize(text)); // <--- Gunakan sanitize()
-        content.endText();
+        content.beginText(); content.setFont(font, fontSize); content.newLineAtOffset(x, y); content.showText(sanitize(text)); content.endText();
     }
-
     private void drawRightText(PDPageContentStream content, String text, float x, float y, int fontSize, PDType1Font font) throws IOException {
-        String safeText = sanitize(text); // <--- Gunakan sanitize()
+        String safeText = sanitize(text);
         float textWidth = font.getStringWidth(safeText) / 1000 * fontSize;
         drawText(content, safeText, x - textWidth, y, fontSize, font);
     }
 
+    // Helper Asli (Center seluruh halaman)
     private float drawCenterText(PDPageContentStream content, String text, float y, PDPage page, int fontSize, PDType1Font font) throws IOException {
-        String safeText = sanitize(text); // <--- Gunakan sanitize()
+        String safeText = sanitize(text);
         float textWidth = font.getStringWidth(safeText) / 1000 * fontSize;
         float x = (page.getMediaBox().getWidth() - textWidth) / 2;
         drawText(content, safeText, x, y, fontSize, font);
         return y;
     }
 
-    private void drawCenterText(PDPageContentStream content, String text, float centerX, float y, int fontSize, PDType1Font font) throws IOException {
-        String safeText = sanitize(text); // <--- Gunakan sanitize()
+    // Helper Baru (Center berdasarkan titik tertentu) -> Untuk Header Toko
+    private float drawCenterText(PDPageContentStream content, String text, float centerX, float y, int fontSize, PDType1Font font) throws IOException {
+        String safeText = sanitize(text);
         float textWidth = font.getStringWidth(safeText) / 1000 * fontSize;
         drawText(content, safeText, centerX - (textWidth / 2), y, fontSize, font);
+        return y;
     }
 }
