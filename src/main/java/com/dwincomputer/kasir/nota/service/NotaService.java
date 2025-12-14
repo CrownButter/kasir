@@ -147,8 +147,41 @@ public class NotaService {
         nota.setSisa(total.subtract(nota.getDp()));
     }
 
+    @Transactional // Pastikan ada @Transactional
     public void updateStatus(Long id, String newStatus) {
         NotaEntity nota = get(id);
+        String oldStatus = nota.getStatus();
+
+        // === [TAMBAHAN PENTING] ===
+        // Kunci Status: Jika status saat ini sudah BATAL, cegah perubahan apapun.
+        // Ini membuat status BATAL menjadi permanen (Terminal State).
+        if ("BATAL".equalsIgnoreCase(oldStatus)) {
+            throw new RuntimeException("Gagal! Nota ini sudah DIBATALKAN dan tidak dapat diubah lagi.");
+        }
+        // ==========================
+
+        // Cek Logika Pembatalan (Logic Anda sebelumnya)
+        // Jika status baru BATAL, kembalikan stok
+        if ("BATAL".equalsIgnoreCase(newStatus)) {
+
+            // Loop semua item di nota ini
+            for (NotaSnapshotEntity itemNota : nota.getSnapshots()) {
+
+                // Hanya proses jika itemId tidak null (artinya ini barang inventory)
+                if (itemNota.getItemId() != null) {
+                    // Cari barang di gudang
+                    ItemEntity itemGudang = itemRepo.findById(itemNota.getItemId()).orElse(null);
+
+                    if (itemGudang != null) {
+                        // KEMBALIKAN STOK
+                        itemGudang.setStok(itemGudang.getStok() + itemNota.getJumlah());
+                        itemRepo.save(itemGudang);
+                    }
+                }
+            }
+        }
+
+        // Update status nota
         nota.setStatus(newStatus);
         notaRepo.save(nota);
     }
