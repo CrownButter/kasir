@@ -1,5 +1,5 @@
 # 1. Build Stage
-FROM eclipse-temurin:25-jdk-alpine AS build
+FROM eclipse-temurin:25-jdk AS build
 WORKDIR /app
 COPY .mvn/ .mvn
 COPY mvnw pom.xml ./
@@ -10,13 +10,13 @@ COPY src ./src
 RUN ./mvnw clean package -DskipTests
 
 # 2. Run Stage
-FROM eclipse-temurin:25-jre-alpine
+# Menggunakan versi standard (bukan alpine) agar support Font & Graphics lancar
+FROM eclipse-temurin:25-jre
 WORKDIR /app
 
-# === [BAGIAN INI YANG DITAMBAHKAN] ===
-# Install library font agar fitur PDF berjalan di Alpine Linux
-RUN apk add --no-cache fontconfig ttf-dejavu freetype
-# =====================================
+# (Opsional) Install fontconfig jika di image ini belum ada,
+# tapi biasanya di image non-alpine sudah aman atau lebih mudah diinstall.
+RUN apt-get update && apt-get install -y fontconfig libfreetype6 && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /app/target/*.jar app.jar
 EXPOSE 8080
