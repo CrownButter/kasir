@@ -1,6 +1,7 @@
 package com.dwincomputer.kasir.item.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.PositiveOrZero; // Tambahkan import ini
 import lombok.*;
 import java.math.BigDecimal;
 
@@ -16,13 +17,19 @@ public class ItemEntity {
     private String nama;
 
     @Column(unique = true)
-    private String kode; // Pastikan kode unik
+    private String kode;
 
-    private BigDecimal harga; // Harga Jual
+    // Tambahkan validasi agar tidak negatif
+    @PositiveOrZero(message = "Harga jual tidak boleh negatif")
+    private BigDecimal harga;
 
     // [BARU] Field Modal/HPP
+    // Tambahkan validasi agar tidak negatif
+    @PositiveOrZero(message = "Harga beli tidak boleh negatif")
     @Column(precision = 19, scale = 2)
     private BigDecimal hargaBeli;
 
+    // Opsional: Stok juga sebaiknya tidak negatif
+    @PositiveOrZero(message = "Stok tidak boleh negatif")
     private Integer stok;
 }

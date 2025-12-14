@@ -2,6 +2,7 @@ package com.dwincomputer.kasir.item.controller;
 
 import com.dwincomputer.kasir.item.entity.ItemEntity;
 import com.dwincomputer.kasir.item.service.ItemService;
+import jakarta.validation.Valid; // Tambahkan import ini
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,7 +19,8 @@ public class ItemController {
     public List<ItemEntity> list() { return service.all(); }
 
     @PostMapping
-    public ItemEntity save(@RequestBody ItemEntity item) {
+    // Tambahkan @Valid di sini
+    public ItemEntity save(@Valid @RequestBody ItemEntity item) {
         return service.save(item);
     }
 
