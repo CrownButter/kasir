@@ -1,6 +1,5 @@
 # 1. Build Stage
-# Ganti dari 'alpine' ke versi standard (Ubuntu/Debian based)
-# Versi Java TETAP 25
+# Menggunakan JDK 25 (Standard Version - bukan Alpine)
 FROM eclipse-temurin:25-jdk AS build
 WORKDIR /app
 COPY .mvn/ .mvn
@@ -12,16 +11,15 @@ COPY src ./src
 RUN ./mvnw clean package -DskipTests
 
 # 2. Run Stage
-# Gunakan versi '25-jre' (tanpa akhiran -alpine)
-# Ini tetap Java 25, tapi di atas Linux yang punya library font lengkap
+# Menggunakan JRE 25 (Standard Version - bukan Alpine)
+# Image ini memiliki library Font & Grafik lengkap (fontconfig, libfreetype, dll)
 FROM eclipse-temurin:25-jre
 WORKDIR /app
 
-# Install fontconfig & font standard agar PDF bisa dirender
+# Install font tambahan untuk memastikan PDFBox berjalan lancar
 RUN apt-get update && apt-get install -y \
     fontconfig \
     libfreetype6 \
-    fonts-dejavu \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /app/target/*.jar app.jar
