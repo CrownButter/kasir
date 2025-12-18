@@ -12,8 +12,8 @@ const routes = [
   // Tambahkan meta guest: true agar halaman ini diproteksi jika user sudah login
   { path: '/login', component: Login, meta: { guest: true } },
   
-  { path: '/', component: KasirHistory, meta: { requiresAuth: true } },
-  { path: '/tambah', component: NotaBaru, meta: { requiresAuth: true } },
+{ path: '/', component: KasirHistory, meta: { requiresAuth: true } },
+{ path: '/tambah', component: NotaBaru, meta: { requiresAuth: true } }, // Tambah Transaksi // Riwayat  { path: '/tambah', component: NotaBaru, meta: { requiresAuth: true } },
   { path: '/print/:id', component: NotaPrint, meta: { requiresAuth: true } },
   { path: '/inventory', component: Inventory, meta: { requiresAuth: true } },
   { path: '/profile', component: UserProfile, meta: { requiresAuth: true } },
