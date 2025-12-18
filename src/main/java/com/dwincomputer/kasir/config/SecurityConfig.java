@@ -35,8 +35,8 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
-                        // Kita izinkan GET toko (untuk logo di login), tapi POST (save) nanti dilindungi di Controller
                         .requestMatchers(HttpMethod.GET, "/api/admin/toko").permitAll()
+                        .requestMatchers("/api/images/**").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .anyRequest().authenticated()
                 )

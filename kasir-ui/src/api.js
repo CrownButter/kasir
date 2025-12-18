@@ -1,16 +1,34 @@
 import axios from 'axios';
 
+// 1. KONFIGURASI URL (Docker-Ready)
+// Jika di Docker/Produksi, set variabel ini di file .env (VITE_API_BASE_URL)
+// Jika tidak ada, otomatis pakai localhost:8080
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+
 const api = axios.create({
-    baseURL: '', 
+    baseURL: BASE_URL,
     headers: {
         'Content-Type': 'application/json'
     }
 });
 
-// 1. REQUEST INTERCEPTOR
-// Sisipkan 'accessToken' (bukan sekadar 'token') ke Header setiap request
+/**
+ * HELPER: Mendapatkan URL Gambar Lengkap
+ * Digunakan untuk menampilkan gambar dari folder /uploads backend
+ * @param {string} path - Contoh: '/api/images/item_xyz.jpg'
+ */
+export const getImageUrl = (path) => {
+    if (!path) return null;
+    // Jika path sudah berupa URL lengkap (http...), kembalikan langsung
+    if (path.startsWith('http')) return path;
+    // Jika path tidak diawali dengan /, tambahkan /
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return `${BASE_URL}${cleanPath}`;
+};
+
+// 2. REQUEST INTERCEPTOR
 api.interceptors.request.use(config => {
-    const token = localStorage.getItem('accessToken'); // Ganti key jadi 'accessToken'
+    const token = localStorage.getItem('accessToken');
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
@@ -19,49 +37,41 @@ api.interceptors.request.use(config => {
     return Promise.reject(error);
 });
 
-// 2. RESPONSE INTERCEPTOR (Fitur Baru: Auto Refresh)
+// 3. RESPONSE INTERCEPTOR (Auto Refresh Token)
 api.interceptors.response.use(
     (response) => response,
     async (error) => {
         const originalRequest = error.config;
 
-        // Jika error 401 (Unauthorized) dan belum pernah mencoba refresh sebelumnya
         if (error.response && error.response.status === 401 && !originalRequest._retry) {
             originalRequest._retry = true;
 
             try {
-                // Ambil refresh token dari storage
                 const refreshToken = localStorage.getItem('refreshToken');
 
                 if (!refreshToken) {
-                    throw new Error("No refresh token");
+                    throw new Error("No refresh token available");
                 }
 
-                // Panggil endpoint refresh token di backend
-                // Perhatikan: Kita pakai axios biasa (bukan instance 'api') untuk menghindari loop
-                const res = await axios.post('/api/auth/refresh-token', {
+                // Gunakan axios mentah dengan BASE_URL agar tidak loop interceptor
+                const res = await axios.post(`${BASE_URL}/api/auth/refresh-token`, {
                     refreshToken: refreshToken
                 });
 
-                // Simpan Access Token yang BARU
                 const newAccessToken = res.data.accessToken;
                 localStorage.setItem('accessToken', newAccessToken);
-                // Jika backend mengirim refresh token baru, simpan juga (opsional tergantung backend)
+
                 if (res.data.refreshToken) {
                     localStorage.setItem('refreshToken', res.data.refreshToken);
                 }
 
-                // Update header request yang gagal tadi dengan token baru
                 originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
-
-                // Ulangi request awal
                 return api(originalRequest);
 
             } catch (refreshError) {
-                // Jika Refresh Token juga expired atau tidak valid -> Paksa Logout
-                console.error("Sesi habis, silakan login ulang.");
+                console.error("Sesi telah habis, silakan login ulang.");
                 localStorage.clear();
-                window.location.href = "/login"; // Redirect ke halaman login
+                window.location.href = "/login";
                 return Promise.reject(refreshError);
             }
         }

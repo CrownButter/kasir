@@ -1,0 +1,29 @@
+package com.dwincomputer.kasir.service;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+import java.io.IOException;
+import java.nio.file.*;
+import java.util.UUID;
+
+@Service
+public class FileStorageService {
+    @Value("${app.upload.dir}")
+    private String uploadDir;
+
+    public String storeFile(MultipartFile file, String prefix) throws IOException {
+        // Buat nama file unik
+        String fileName = prefix + "_" + UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
+        Path targetLocation = Paths.get(uploadDir).toAbsolutePath().normalize().resolve(fileName);
+
+        // Buat folder jika belum ada
+        Files.createDirectories(targetLocation.getParent());
+
+        // Simpan file
+        Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
+
+        // Return path URL untuk disimpan di DB
+        return "/api/images/" + fileName;
+    }
+}
