@@ -13,12 +13,18 @@ public class WebConfig implements WebMvcConfigurer {
     private String uploadDir;
 
     @Override
-    public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // Paths.get(uploadDir) akan otomatis menyesuaikan OS (Windows/Linux)
-        Path uploadPath = Paths.get(uploadDir).toAbsolutePath();
-        String resourcePath = uploadPath.toUri().toString();
+    public void addCorsMappings(CorsRegistry registry) {
+        registry.addMapping("/**")
+                .allowedOrigins("https://demokasir.dwincomputer.com") // Izinkan domain Anda
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedHeaders("*")
+                .allowCredentials(true);
+    }
 
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        Path uploadPath = Paths.get(uploadDir).toAbsolutePath();
         registry.addResourceHandler("/api/images/**")
-                .addResourceLocations(resourcePath);
+                .addResourceLocations("file:" + uploadPath.toString() + "/");
     }
 }

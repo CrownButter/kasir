@@ -20,8 +20,14 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
       APP_JWT_SECRET: ${JWT_SECRET}
       APP_PRINTER_NAME: POS-80
+      # Tambahkan ini agar folder uploads berada di dalam container
+      APP_UPLOAD_DIR: /app/uploads
     depends_on:
       - mysql
+    volumes:
+      - ./uploads:/app/uploads # Mapping folder ke host server
+    ports:
+      - "8080:8080" # Ekspos port agar bisa di-proxy oleh Nginx/CyberPanel
     networks:
       - kasir-net
     restart: always
@@ -30,7 +36,10 @@ services:
     build: ./kasir-ui
     container_name: kasir-frontend
     ports:
-      - "25102:80"  # We use port 8081 to be safe on CyberPanel
+      - "25102:80"
+    environment:
+      # Variabel ini akan dibaca saat build frontend
+      - VITE_API_BASE_URL=https://demokasir.dwincomputer.com
     depends_on:
       - backend
     networks:
