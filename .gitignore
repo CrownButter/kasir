@@ -34,3 +34,4 @@ build/
 .printready/
 .backup/
 vue-dist.tar.gz
+uploads/

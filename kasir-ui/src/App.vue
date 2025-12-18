@@ -4,14 +4,10 @@
       <div class="container mx-auto px-2 md:px-4 py-3 flex justify-between items-center max-w-full">
         
         <div class="flex items-center gap-2 md:gap-3 overflow-hidden">
-          <div v-if="toko.logoBase64" class="w-8 h-8 md:w-10 md:h-10 bg-white rounded-full flex items-center justify-center overflow-hidden border-2 border-blue-400 flex-shrink-0">
-            <img :src="toko.logoBase64" class="w-full h-full object-contain"/>
+          <div v-if="toko.logoUrl" class="w-8 h-8 md:w-10 md:h-10 bg-white rounded-full flex items-center justify-center overflow-hidden border-2 border-blue-400 flex-shrink-0">
+            <img :src="'http://localhost:8080' + toko.logoUrl" class="w-full h-full object-contain"/>
           </div>
-          <div class="flex flex-col justify-center min-w-0">
-            <h1 class="font-bold text-sm md:text-lg leading-tight truncate">
-              {{ toko.namaToko || 'Dwin Computer' }}
-            </h1>
-          </div>
+          <h1 class="font-bold text-sm md:text-lg truncate">{{ toko.namaToko || 'Dwin Computer' }}</h1>
         </div>
 
         <div class="flex items-center gap-1 md:gap-3 flex-shrink-0">
@@ -51,10 +47,7 @@
         </div>
       </div>
     </nav>
-
-    <div class="p-0">
-      <router-view></router-view>
-    </div>
+    <router-view></router-view>
   </div>
 </template>
 
@@ -66,28 +59,17 @@ import api from './api';
 const router = useRouter();
 const userRole = ref(localStorage.getItem('role'));
 const username = ref(localStorage.getItem('username'));
-const toko = ref({ namaToko: 'Dwin Computer', logoBase64: null });
+const toko = ref({ namaToko: '', logoUrl: null });
 
-const handleLogout = async () => {
-  try {
-    await api.post('/api/auth/logout');
-  } catch (e) {
-    console.log("Force logout");
-  } finally {
-    localStorage.clear();
-    window.location.href = '/login';
-  }
-};
+const handleLogout = () => { localStorage.clear(); window.location.href = '/login'; };
 
 onMounted(async () => {
   const token = localStorage.getItem('accessToken');
-  if (window.location.pathname !== '/login' && token) {
+  if (token && window.location.pathname !== '/login') {
     try {
       const res = await api.get('/api/admin/toko');
       toko.value = res.data;
-    } catch(e) {
-      console.log("Gagal load info toko");
-    }
+    } catch(e) { console.log("Gagal load toko"); }
   }
 });
 </script>
