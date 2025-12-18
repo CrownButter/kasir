@@ -20,12 +20,11 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
       APP_JWT_SECRET: ${JWT_SECRET}
       APP_PRINTER_NAME: POS-80
-      # Tambahkan path folder upload di dalam container
       APP_UPLOAD_DIR: /app/uploads
     ports:
-      - "8080:8080" # Ekspos port 8080 agar bisa diakses oleh Reverse Proxy Apache
+      - "8080:8080"
     volumes:
-      - ./uploads:/app/uploads # Hubungkan folder uploads di server ke dalam container
+      - ./uploads:/app/uploads
     depends_on:
       - mysql
     networks:
@@ -33,13 +32,14 @@ services:
     restart: always
 
   frontend:
-    build: ./kasir-ui
+    build:
+      context: ./kasir-ui
+      args:
+        # Variabel ini akan dikirim ke Dockerfile saat proses build
+        - VITE_API_BASE_URL=https://demokasir.dwincomputer.com
     container_name: kasir-frontend
     ports:
-      - "25102:80" # Tetap menggunakan port signature Anda
-    environment:
-      # Memberitahu Vue untuk memanggil domain asli, bukan localhost
-      - VITE_API_BASE_URL=https://demokasir.dwincomputer.com
+      - "25102:80"
     depends_on:
       - backend
     networks:
