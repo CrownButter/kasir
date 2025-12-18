@@ -3,7 +3,7 @@ import axios from 'axios';
 // 1. KONFIGURASI URL (Docker-Ready)
 // Jika di Docker/Produksi, set variabel ini di file .env (VITE_API_BASE_URL)
 // Jika tidak ada, otomatis pakai localhost:8080
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://demokasir.dwincomputer.com';
 
 const api = axios.create({
     baseURL: BASE_URL,
