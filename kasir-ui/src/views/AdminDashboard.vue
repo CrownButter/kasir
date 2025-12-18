@@ -78,11 +78,11 @@
                 <div v-for="(bank, index) in toko.daftarRekening" :key="index" class="flex flex-wrap md:flex-nowrap gap-2 bg-gray-50 p-4 rounded-xl border border-gray-200 relative shadow-sm">
                    <div class="w-full md:w-1/4">
                        <label class="text-[9px] font-bold text-gray-400 uppercase">Nama Bank</label>
-                       <input v-model="bank.namaBank" placeholder="BCA / BRI / Mandiri" class="w-full border p-2 rounded text-xs font-bold"/>
+                       <input v-model="bank.namaBank" placeholder="BCA / BRI" class="w-full border p-2 rounded text-xs font-bold"/>
                    </div>
                    <div class="w-full md:w-2/4">
                        <label class="text-[9px] font-bold text-gray-400 uppercase">Nomor Rekening</label>
-                       <input v-model="bank.noRekening" placeholder="XXXX-XXXX-XXXX" class="w-full border p-2 rounded text-xs font-bold font-mono"/>
+                       <input v-model="bank.noRekening" placeholder="XXXX-XXXX" class="w-full border p-2 rounded text-xs font-bold font-mono"/>
                    </div>
                    <div class="w-full md:w-1/4">
                        <label class="text-[9px] font-bold text-gray-400 uppercase">Atas Nama</label>
@@ -156,11 +156,11 @@
           <div class="bg-gray-50 p-4 rounded-xl border mb-6 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
              <div>
                 <label class="text-[10px] font-bold text-gray-400 uppercase block mb-1 tracking-widest">Dari Tanggal</label>
-                <input type="date" v-model="filterDate.start" class="w-full border p-2 rounded-lg text-black font-bold outline-none focus:ring-2 focus:ring-blue-500"/>
+                <input type="date" v-model="filterDate.start" class="w-full border p-2 rounded-lg text-black font-bold outline-none"/>
              </div>
              <div>
                 <label class="text-[10px] font-bold text-gray-400 uppercase block mb-1 tracking-widest">Sampai Tanggal</label>
-                <input type="date" v-model="filterDate.end" class="w-full border p-2 rounded-lg text-black font-bold outline-none focus:ring-2 focus:ring-blue-500"/>
+                <input type="date" v-model="filterDate.end" class="w-full border p-2 rounded-lg text-black font-bold outline-none"/>
              </div>
              <div>
                 <label class="text-[10px] font-bold text-gray-400 uppercase block mb-1 tracking-widest">Urutkan</label>
@@ -169,35 +169,30 @@
                    <option value="oldest">Terlama</option>
                 </select>
              </div>
-             <div class="bg-blue-600 text-white p-3 rounded-xl shadow-lg border border-blue-400">
+             <div class="bg-blue-600 text-white p-3 rounded-xl shadow-lg">
                 <p class="text-[9px] font-bold uppercase opacity-80 tracking-widest">Total Pendapatan</p>
                 <p class="text-lg font-black font-mono">Rp {{ formatRupiah(totalPendapatan) }}</p>
              </div>
           </div>
 
-          <div class="overflow-x-auto rounded-xl border text-black">
+          <div class="overflow-x-auto rounded-xl border text-black font-bold">
              <table class="w-full text-xs border-collapse">
-                <thead class="bg-gray-800 text-white uppercase font-bold tracking-wider text-[10px]">
+                <thead class="bg-gray-800 text-white uppercase tracking-wider text-[10px]">
                    <tr>
                       <th class="p-3 text-left">Tanggal</th>
                       <th class="p-3 text-left">No Nota</th>
                       <th class="p-3 text-left">Tipe</th>
                       <th class="p-3 text-left">Customer</th>
-                      <th class="p-3 text-right">Total Tagihan</th>
+                      <th class="p-3 text-right">Total</th>
                    </tr>
                 </thead>
-                <tbody class="font-bold">
-                   <tr v-for="nota in filteredLaporan" :key="nota.id" class="border-b hover:bg-blue-50 transition-colors">
+                <tbody>
+                   <tr v-for="nota in filteredLaporan" :key="nota.id" class="border-b hover:bg-gray-50">
                       <td class="p-3">{{ new Date(nota.tanggal).toLocaleDateString('id-ID') }}</td>
                       <td class="p-3 font-mono text-blue-600 uppercase">{{ nota.kodeNota || nota.id }}</td>
-                      <td class="p-3">
-                        <span :class="nota.tipe === 'SERVICE' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'" class="px-2 py-0.5 rounded text-[9px] font-black uppercase">{{ nota.tipe }}</span>
-                      </td>
+                      <td class="p-3"><span class="px-2 py-0.5 rounded bg-gray-200 text-[9px] uppercase">{{ nota.tipe }}</span></td>
                       <td class="p-3 uppercase">{{ nota.customerNama }}</td>
-                      <td class="p-3 text-right font-black text-gray-800">Rp {{ formatRupiah(nota.total) }}</td>
-                   </tr>
-                   <tr v-if="filteredLaporan.length === 0">
-                      <td colspan="5" class="p-12 text-center text-gray-400 italic font-bold text-sm">Data transaksi tidak ditemukan.</td>
+                      <td class="p-3 text-right font-black">Rp {{ formatRupiah(nota.total) }}</td>
                    </tr>
                 </tbody>
              </table>
@@ -231,7 +226,7 @@ onMounted(() => {
   loadLaporan();
 });
 
-// --- LOGIKA PENGATURAN TOKO ---
+// --- LOGIKA TOKO & IMAGE ---
 const loadToko = async () => {
   try {
     const res = await api.get('/api/admin/toko');
@@ -253,57 +248,51 @@ const saveToko = async () => {
   try {
     const formData = new FormData();
     const storeData = { ...toko.value };
-    delete storeData.logoUrl; // Hapus URL lama dari JSON agar tidak konflik
-    
+    delete storeData.logoUrl;
     formData.append('toko', JSON.stringify(storeData));
     if (selectedFile.value) formData.append('logo', selectedFile.value);
 
     await api.post('/api/admin/toko', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
-    alert("Pengaturan Berhasil Disimpan!");
+    alert("Berhasil disimpan!");
     window.location.reload(); 
-  } catch(e) { 
-    alert("Gagal Simpan: " + (e.response?.data?.message || e.message)); 
-  }
+  } catch(e) { alert("Gagal Simpan"); }
 };
 
-const addRekening = () => { toko.value.daftarRekening.push({ namaBank: "", noRekening: "", atasNama: "" }); };
-const removeRekening = (index) => { toko.value.daftarRekening.splice(index, 1); };
-
-// --- LOGIKA MANAGEMENT KASIR ---
+// --- LOGIKA KASIR ---
 const loadUsers = async () => {
   try {
     const res = await api.get('/api/admin/users');
     users.value = res.data;
-  } catch(e) { console.error("Gagal load users"); }
+  } catch(e) {}
 };
 
 const addKasir = async () => {
   if(!newKasir.value.username || !newKasir.value.password) return alert("Isi Username & Password!");
   try {
     await api.post('/api/admin/users', { ...newKasir.value, role: 'KASIR' });
-    alert("Kasir Baru Berhasil Ditambahkan!");
+    alert("Kasir Ditambahkan!");
     newKasir.value = { username: "", password: "" };
     loadUsers();
   } catch(e) { alert("Gagal tambah kasir"); }
 };
 
 const deleteUser = async (id) => {
-  if(confirm("Yakin ingin menghapus akun kasir ini?")) {
+  if(confirm("Yakin hapus kasir ini?")) {
     try {
       await api.delete(`/api/admin/users/${id}`);
       loadUsers();
-    } catch(e) { alert("Gagal hapus kasir"); }
+    } catch(e) { alert("Gagal hapus"); }
   }
 };
 
-// --- LOGIKA LAPORAN TRANSAKSI ---
+// --- LOGIKA LAPORAN ---
 const loadLaporan = async () => {
   try {
     const res = await api.get('/api/nota');
     if(Array.isArray(res.data)) laporan.value = res.data;
-  } catch(e) { console.error("Gagal load laporan"); }
+  } catch(e) {}
 };
 
 const filteredLaporan = computed(() => {
@@ -322,11 +311,7 @@ const totalPendapatan = computed(() => filteredLaporan.value.reduce((sum, item) 
 
 const exportPDF = () => {
     const doc = new jsPDF();
-    doc.setFontSize(18);
-    doc.text("Laporan Pendapatan Kasir", 14, 15);
-    doc.setFontSize(10);
-    doc.text(`Dicetak pada: ${new Date().toLocaleString('id-ID')}`, 14, 22);
-
+    doc.text("Laporan Transaksi Kasir", 14, 15);
     const tableRows = filteredLaporan.value.map(nota => [
         new Date(nota.tanggal).toLocaleDateString('id-ID'),
         nota.kodeNota || nota.id,
@@ -334,26 +319,17 @@ const exportPDF = () => {
         nota.customerNama,
         `Rp ${formatRupiah(nota.total)}`
     ]);
-
     autoTable(doc, {
         head: [["Tanggal", "No Nota", "Tipe", "Customer", "Total"]],
         body: tableRows,
-        startY: 30,
+        startY: 25,
         theme: 'grid',
-        headStyles: { fillColor: [41, 128, 185], fontStyle: 'bold' },
-        foot: [[ "", "", "", "GRAND TOTAL", `Rp ${formatRupiah(totalPendapatan.value)}` ]],
-        footStyles: { fillColor: [241, 241, 241], textColor: [0, 0, 0], fontStyle: 'bold' }
+        headStyles: { fillColor: [41, 128, 185] }
     });
-
-    doc.save(`Laporan_POS_${new Date().toISOString().slice(0,10)}.pdf`);
+    doc.save(`Laporan_POS.pdf`);
 };
 
+const addRekening = () => { toko.value.daftarRekening.push({ namaBank: "", noRekening: "", atasNama: "" }); };
+const removeRekening = (index) => { toko.value.daftarRekening.splice(index, 1); };
 const formatRupiah = (v) => new Intl.NumberFormat('id-ID').format(v || 0);
 </script>
-
-<style scoped>
-/* Styling tambahan untuk sidebar aktif agar lebih tegas */
-button.bg-blue-600 {
-  border-left: 4px solid white;
-}
-</style>
