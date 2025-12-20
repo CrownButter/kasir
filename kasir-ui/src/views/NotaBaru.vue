@@ -25,35 +25,6 @@
             {{ formatNumber(grandTotal) }}
           </h1>
         </div>
-        <div class="p-4 bg-white shadow-md border-b">
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-    <div class="relative">
-      <label class="text-[10px] font-black text-blue-600 uppercase mb-1 block ml-2">Scan Barcode (Tekan Enter)</label>
-      <div class="relative">
-        <i class="bi bi-upc-scan absolute left-4 top-3.5 text-blue-500"></i>
-        <input 
-          v-model="barcodeInput" 
-          @keyup.enter="handleBarcodeScan"
-          ref="barcodeField"
-          placeholder="Klik disini lalu scan..." 
-          class="w-full pl-12 p-3.5 border-2 border-blue-500 rounded-2xl bg-blue-50 outline-none focus:bg-white focus:ring-4 focus:ring-blue-100 transition text-sm font-bold shadow-inner"
-        />
-      </div>
-    </div>
-
-    <div class="relative">
-      <label class="text-[10px] font-black text-gray-400 uppercase mb-1 block ml-2">Cari Barang (Manual)</label>
-      <div class="relative">
-        <i class="bi bi-search absolute left-4 top-3.5 text-slate-400"></i>
-        <input 
-          v-model="search" 
-          placeholder="Ketik nama produk..." 
-          class="w-full pl-12 p-3.5 border-none rounded-2xl bg-gray-100 outline-none focus:bg-white focus:ring-2 focus:ring-blue-400 transition text-sm font-bold shadow-inner"
-        />
-      </div>
-    </div>
-  </div>
-</div>
 
         <div class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/50">
           <div class="space-y-1 mb-4">
@@ -63,7 +34,7 @@
 
           <div v-for="(row, index) in rows" :key="index" v-show="row.namaBarang" class="flex justify-between items-center p-3 border-2 border-transparent bg-white rounded-2xl shadow-sm hover:border-blue-200 transition">
             <div class="flex-1">
-              <p class="font-bold text-sm text-slate-800 line-clamp-1">{{ row.namaBarang }}</p>
+              <p class="font-bold text-sm text-slate-800 line-clamp-1 uppercase">{{ row.namaBarang }}</p>
               <div class="flex items-center gap-2 mt-1">
                 <span class="bg-blue-100 text-blue-700 text-[10px] px-2 py-0.5 rounded font-black">{{ row.qty }}x</span>
                 <span class="text-[10px] text-slate-400 font-mono">@ {{ formatNumber(row.harga) }}</span>
@@ -87,13 +58,25 @@
               <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
                 <i class="bi bi-wallet2 text-blue-500"></i> Uang Muka (DP)
               </label>
-              <input v-model="form.dp" type="number" class="w-full p-3 border-2 rounded-xl font-mono font-bold text-base focus:border-blue-400 outline-none transition bg-slate-50" placeholder="0" />
+              <input 
+                :value="formattedDp" 
+                @input="onInputMoney($event, 'dp')"
+                type="text" 
+                class="w-full p-3 border-2 rounded-xl font-mono font-bold text-lg focus:border-blue-400 outline-none transition bg-slate-50" 
+                placeholder="0" 
+              />
             </div>
             <div class="space-y-1">
               <label class="text-[10px] font-black text-blue-600 uppercase tracking-widest flex items-center gap-1">
                 <i class="bi bi-cash-coin"></i> Bayar (Cash)
               </label>
-              <input v-model="form.bayar" type="number" class="w-full p-3 border-2 border-blue-400 rounded-xl font-mono font-bold bg-blue-50 text-base focus:ring-4 focus:ring-blue-100 outline-none transition text-blue-700" placeholder="0" />
+              <input 
+                :value="formattedBayar" 
+                @input="onInputMoney($event, 'bayar')"
+                type="text" 
+                class="w-full p-3 border-2 border-blue-400 rounded-xl font-mono font-bold bg-blue-50 text-lg focus:ring-4 focus:ring-blue-100 outline-none transition text-blue-700" 
+                placeholder="0" 
+              />
             </div>
           </div>
 
@@ -111,10 +94,20 @@
       </div>
 
       <div class="flex-1 bg-gray-100 flex flex-col overflow-hidden">
-        <div class="p-4 bg-white shadow-sm flex items-center gap-4">
+        
+        <div class="p-4 bg-white shadow-sm flex items-center gap-4 border-b">
           <div class="relative flex-1">
-            <i class="bi bi-search absolute left-5 top-3.5 text-slate-400"></i>
-            <input v-model="search" placeholder="Ketik nama produk atau barcode..." class="w-full pl-12 p-3.5 border-none rounded-2xl bg-gray-100 outline-none focus:bg-white focus:ring-2 focus:ring-blue-400 transition text-sm font-bold shadow-inner" />
+            <i class="bi bi-search absolute left-5 top-4 text-slate-400"></i>
+            <input 
+              v-model="search" 
+              @keyup.enter="handleBarcodeEnter"
+              ref="barcodeField"
+              placeholder="Cari nama barang atau Scan Barcode disini..." 
+              class="w-full pl-12 p-4 border-none rounded-2xl bg-gray-100 outline-none focus:bg-white focus:ring-4 focus:ring-blue-100 transition text-sm font-bold shadow-inner" 
+            />
+            <div class="absolute right-5 top-4">
+               <span class="text-[9px] bg-blue-600 text-white px-2 py-1 rounded font-black uppercase tracking-tighter animate-pulse">Mode Scan Aktif</span>
+            </div>
           </div>
         </div>
 
@@ -170,9 +163,10 @@ import api, { getImageUrl } from '../api';
 const router = useRouter();
 const masterItems = ref([]);
 const search = ref("");
+const barcodeField = ref(null);
 const kasirNama = ref(localStorage.getItem('username') || 'Kasir');
 
-// TOAST NOTIFICATION LOGIC
+// TOAST NOTIFIKASI
 const toast = reactive({ show: false, message: "" });
 const triggerToast = (msg) => {
   toast.message = msg;
@@ -182,30 +176,63 @@ const triggerToast = (msg) => {
 
 // FORM DATA
 const form = ref({ customerNama: "", customerTelp: "", customerAlamat: "", tipe: 'JUAL', dp: 0, bayar: 0 });
-const rows = ref([{ unitName: "", kerusakan: "", solusi: "", namaBarang: "", catatan: "", qty: 1, harga: 0, itemId: null, isChild: false }]);
+const rows = ref([{ unitName: "", kerusakan: "", solusi: "", namaBarang: "", catatan: "", qty: 1, harga: 0, itemId: null }]);
 
 onMounted(async () => {
   try {
     const res = await api.get('/api/items');
     masterItems.value = res.data.map(item => ({ ...item, isShaking: false }));
+    // Fokus otomatis ke pencarian saat halaman dibuka
+    if(barcodeField.value) barcodeField.value.focus();
   } catch(e) { console.error("Gagal load item"); }
 });
 
+// FORMAT ANGKA KE RUPIAH (TITIK)
+const formatNumber = (n) => new Intl.NumberFormat('id-ID').format(n || 0);
+
+// FORMAT TAMPILAN INPUT DP & BAYAR
+const formattedDp = computed(() => formatNumber(form.value.dp));
+const formattedBayar = computed(() => formatNumber(form.value.bayar));
+
+// LOGIKA KETIK ANGKA OTOMATIS BERSIHKAN DARI HURUF
+const onInputMoney = (event, field) => {
+  const rawValue = event.target.value.replace(/\D/g, "");
+  form.value[field] = rawValue === "" ? 0 : parseInt(rawValue);
+};
+
+// PERHITUNGAN TRANSAKSI
 const grandTotal = computed(() => rows.value.reduce((sum, r) => sum + (r.qty * r.harga), 0));
 const cartCount = computed(() => rows.value.filter(r => r.itemId || r.namaBarang).length);
-
-// REALTIME CALCULATION
 const sisaBayar = computed(() => Math.max(0, grandTotal.value - (Number(form.value.dp) + Number(form.value.bayar))));
 const kembalian = computed(() => Math.max(0, (Number(form.value.dp) + Number(form.value.bayar)) - grandTotal.value));
 
+// FILTER KATALOG PRODUK
 const filteredItems = computed(() => {
   const s = search.value.toLowerCase();
-  return masterItems.value.filter(i => i.nama.toLowerCase().includes(s) || i.kode.toLowerCase().includes(s));
+  if(!s) return masterItems.value;
+  return masterItems.value.filter(i => 
+    i.nama.toLowerCase().includes(s) || (i.kode && i.kode.toLowerCase().includes(s))
+  );
 });
 
-const formatNumber = (n) => new Intl.NumberFormat('id-ID').format(n || 0);
+// LOGIKA BARCODE SCANNER (TEKAN ENTER)
+const handleBarcodeEnter = () => {
+  if(!search.value) return;
+  
+  const inputVal = search.value.toLowerCase().trim();
+  // Cari barang yang kodenya atau namanya persis sama dengan input
+  const matchedItem = masterItems.value.find(i => 
+    (i.kode && i.kode.toLowerCase() === inputVal) || 
+    (i.nama.toLowerCase() === inputVal)
+  );
 
-// LOGIC ADD TO CART
+  if(matchedItem) {
+    onProductClick(matchedItem);
+    search.value = ""; // Bersihkan kolom pencarian agar bisa scan lagi
+  }
+};
+
+// TAMBAH BARANG KE KERANJANG
 const onProductClick = (item) => {
   if(item.stok <= 0) {
     item.isShaking = true;
@@ -224,42 +251,51 @@ const onProductClick = (item) => {
     }
     existing.qty++;
   } else {
-    if(rows.value.length === 1 && !rows.value[0].itemId && !rows.value[0].namaBarang) rows.value = [];
-    rows.value.push({ unitName: "", kerusakan: "", solusi: "", namaBarang: item.nama, qty: 1, harga: item.harga, itemId: item.id, isChild: false });
+    // Jika baris pertama kosong, timpa baris pertama
+    if(rows.value.length === 1 && !rows.value[0].itemId && !rows.value[0].namaBarang) {
+      rows.value = [];
+    }
+    rows.value.push({ 
+        namaBarang: item.nama, 
+        qty: 1, 
+        harga: item.harga, 
+        itemId: item.id 
+    });
   }
 };
 
 const switchMode = (mode) => {
   if(cartCount.value > 0 && !confirm("Keranjang akan dikosongkan?")) return;
   form.value.tipe = mode;
-  rows.value = [{ unitName: "", kerusakan: "", solusi: "", namaBarang: "", catatan: "", qty: 1, harga: 0, itemId: null, isChild: false }];
+  rows.value = [{ unitName: "", kerusakan: "", solusi: "", namaBarang: "", qty: 1, harga: 0, itemId: null }];
 };
 
-// ACTIONS
 const removeRow = (index) => {
   rows.value.splice(index, 1);
-  if(rows.value.length === 0) rows.value = [{ unitName: "", kerusakan: "", solusi: "", namaBarang: "", catatan: "", qty: 1, harga: 0, itemId: null, isChild: false }];
+  if(rows.value.length === 0) {
+    rows.value = [{ unitName: "", kerusakan: "", solusi: "", namaBarang: "", qty: 1, harga: 0, itemId: null }];
+  }
 };
 
-// SAVE LOGIC
 const saveNota = async () => {
   if (!form.value.customerNama) return triggerToast("Nama Pelanggan wajib diisi!");
   if (cartCount.value === 0) return triggerToast("Pilih minimal satu barang!");
   
   const totalInput = Number(form.value.dp) + Number(form.value.bayar);
   const isLunas = totalInput >= grandTotal.value;
+  
   const payload = {
     ...form.value,
     kasirNama: kasirNama.value,
     kasirId: 1,
     status: form.value.tipe === 'SERVICE' ? 'PROSES' : (isLunas ? 'LUNAS' : 'PROSES'),
-    barangCustomer: form.value.tipe === 'SERVICE' ? (rows.value[0].unitName || 'Service') : (rows.value[0].namaBarang || 'Retail'),
+    barangCustomer: form.value.tipe === 'SERVICE' ? 'Unit Service' : (rows.value[0].namaBarang || 'Retail'),
     items: rows.value.filter(r => r.namaBarang).map(r => ({ 
         itemId: r.itemId, 
         namaBarang: r.namaBarang, 
         hargaSatuan: r.harga, 
         jumlah: r.qty, 
-        catatan: form.value.tipe === 'SERVICE' ? `Unit: ${r.unitName}` : 'Retail' 
+        catatan: 'Retail' 
     }))
   };
 
@@ -271,16 +307,13 @@ const saveNota = async () => {
 </script>
 
 <style scoped>
-/* Scrollbar */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 
-/* Toast Animation */
 .toast-enter-active, .toast-leave-active { transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 .toast-enter-from { opacity: 0; transform: translate(-50%, -100px); }
 .toast-leave-to { opacity: 0; transform: translate(-50%, -100px); }
 
-/* Shake Animation */
 .shake-anim { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; border-color: #ef4444 !important; }
 @keyframes shake {
   10%, 90% { transform: translate3d(-1px, 0, 0); }
@@ -289,6 +322,5 @@ const saveNota = async () => {
   40%, 60% { transform: translate3d(4px, 0, 0); }
 }
 
-/* Hide Spinner Number */
 input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 </style>
