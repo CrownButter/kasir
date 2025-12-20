@@ -48,7 +48,7 @@
     </div>
 
     <div v-else class="flex-1 flex flex-col md:flex-row overflow-hidden relative">
-      <div class="w-full md:w-1/3 flex flex-col bg-white border-r shadow-xl z-10 overflow-hidden">
+      <div class="w-full md:w-1/2 flex flex-col bg-white border-r shadow-xl z-10 overflow-hidden">
         <div class="bg-black p-4 text-center">
           <p class="text-green-500 text-[10px] font-mono uppercase mb-1">Total Tagihan</p>
           <h1 class="text-3xl font-mono text-green-400 font-bold tracking-tighter">{{ formatNumber(grandTotal) }}</h1>

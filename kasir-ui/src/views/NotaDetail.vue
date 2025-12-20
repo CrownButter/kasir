@@ -1,7 +1,7 @@
 <template>
   <div class="container mx-auto p-4 md:p-6 max-w-4xl" v-if="nota">
     <div class="flex justify-between items-center mb-6">
-      <button @click="$router.push('/')" class="text-gray-600 flex items-center gap-2 font-bold">
+      <button @click="$router.push('/')" class="text-gray-600 flex items-center gap-2 font-bold hover:text-black">
         <i class="bi bi-arrow-left"></i> Kembali ke POS
       </button>
       <div class="flex gap-3">
@@ -55,7 +55,7 @@
               <tr v-for="(item, i) in nota.snapshots" :key="i" class="hover:bg-gray-50">
                 <td class="p-4">
                   <div class="font-bold text-gray-800">{{ item.namaBarang }}</div>
-                  <div class="text-xs text-gray-500 italic">{{ item.catatan }}</div>
+                  <div class="text-xs text-gray-500 italic" v-if="item.catatan">{{ item.catatan }}</div>
                 </td>
                 <td class="p-4 text-center">{{ item.jumlah }}</td>
                 <td class="p-4 text-right">{{ formatRupiah(item.hargaSatuan) }}</td>
@@ -67,17 +67,19 @@
 
         <div class="flex justify-end">
           <div class="w-full md:w-1/2 space-y-3">
-            <div class="flex justify-between text-gray-600 font-bold">
-              <span>Total Tagihan:</span>
-              <span>{{ formatRupiah(nota.total) }}</span>
-            </div>
-            <div class="flex justify-between text-red-500 font-bold">
-              <span>DP (Uang Muka):</span>
-              <span>- {{ formatRupiah(nota.dp) }}</span>
-            </div>
-            <div class="flex justify-between border-t-2 pt-3 text-2xl font-black text-blue-800">
+            <div v-if="nota.sisa > 0" class="flex justify-between text-red-600 font-bold">
               <span>Sisa Bayar:</span>
               <span>{{ formatRupiah(nota.sisa) }}</span>
+            </div>
+
+            <div v-if="nota.dp > 0" class="flex justify-between text-gray-600 font-medium">
+              <span>Uang Muka (DP):</span>
+              <span>{{ formatRupiah(nota.dp) }}</span>
+            </div>
+
+            <div class="flex justify-between border-t-2 pt-3 text-2xl font-black text-blue-800">
+              <span>Total Tagihan:</span>
+              <span>{{ formatRupiah(nota.total) }}</span>
             </div>
           </div>
         </div>
@@ -100,7 +102,6 @@ const route = useRoute();
 const router = useRouter();
 const nota = ref(null);
 
-// Ambil data nota berdasarkan ID di URL
 onMounted(async () => {
   try {
     const res = await api.get(`/api/nota/${route.params.id}`);
@@ -111,7 +112,6 @@ onMounted(async () => {
   }
 });
 
-// Fitur Cetak PDF (Diadaptasi dari KasirHistory.vue )
 const printPdf = async () => {
   try {
     const response = await api.get(`/api/nota/${nota.value.id}/pdf`, { responseType: 'blob' });
@@ -123,12 +123,10 @@ const printPdf = async () => {
     link.click();
     link.remove();
   } catch (error) {
-    console.error("Gagal download PDF", error);
     alert("Gagal mendownload PDF.");
   }
 };
 
-// Helpers (Diambil dari KasirHistory.vue [cite: 3940, 3954])
 const formatRupiah = (v) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(v || 0);
 const formatDate = (d) => new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 const getStatusColor = (status) => {
