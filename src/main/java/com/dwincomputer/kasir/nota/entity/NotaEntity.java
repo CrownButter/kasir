@@ -57,4 +57,6 @@ public class NotaEntity {
     @Builder.Default
     @JsonManagedReference
     private List<NotaSnapshotEntity> snapshots = new ArrayList<>();
+    @Transient // Gunakan @Transient agar field ini tidak dibuatkan kolom di database
+    private BigDecimal totalModal;
 }
