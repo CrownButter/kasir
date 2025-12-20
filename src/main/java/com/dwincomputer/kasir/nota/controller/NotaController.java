@@ -69,4 +69,9 @@ public class NotaController {
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(pdfBytes);
     }
+
+    @PostMapping
+    public Nota simpan(@RequestBody Nota nota) {
+        return service.simpanNota(nota); // Mengembalikan objek Nota hasil simpan
+    }
 }

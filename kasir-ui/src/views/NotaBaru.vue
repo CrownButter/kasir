@@ -337,17 +337,18 @@ const getRowNumber = (currentIndex) => {
 const grandTotal = computed(() => rows.value.reduce((sum, r) => sum + (r.qty * r.harga), 0));
 
 const saveNota = async () => {
-  // 1. Validasi Input [cite: 2576, 2588]
+  // 1. Validasi Input: Memastikan data minimal terisi
   if (!form.value.customerNama) {
     return alert("Nama Customer wajib diisi!");
   }
   
+  // Memvalidasi apakah ada item yang dimasukkan (Retail maupun Service)
   const validItems = rows.value.filter(r => r.namaBarang || r.solusi || r.unitName);
   if (validItems.length === 0) {
     return alert("Tambahkan minimal satu unit atau barang!");
   }
 
-  // 2. Pemetaan data ke format Backend (Payload) [cite: 2589, 2600]
+  // 2. Pemetaan data ke format yang diminta Backend (Payload)
   const itemsPayload = rows.value.map(r => ({
     itemId: r.itemId,
     namaBarang: r.namaBarang || r.solusi || 'Biaya Service',
@@ -361,8 +362,9 @@ const saveNota = async () => {
   const payload = {
     ...form.value,
     kasirNama: kasirNama.value,
-    kasirId: 1, // Default ID admin/kasir
+    kasirId: 1, // Default ID admin/kasir (Bisa diubah sesuai login)
     status: form.value.tipe === 'SERVICE' ? 'PROSES' : 'LUNAS',
+    // Ambil info unit pertama untuk ringkasan di tabel history
     barangCustomer: form.value.tipe === 'SERVICE' 
       ? (rows.value[0].unitName || 'Unit Service') 
       : (itemsPayload[0]?.namaBarang || 'Retail'),
@@ -370,21 +372,21 @@ const saveNota = async () => {
     items: itemsPayload
   };
 
-  // 3. Proses Pengiriman ke API & Redirect [cite: 2621, 2625]
+  // 3. Proses Pengiriman ke API & Redirect ke Detail
   try {
     const res = await api.post('/api/nota', payload);
     alert("Nota Berhasil Disimpan!");
     
-    /** * PERBAIKAN: Redirect ke detail nota menggunakan ID 
-     * yang baru saja dibuat oleh backend.
-     */
+    // Redirect ke detail nota menggunakan ID yang baru saja dibuat oleh backend
+    // Ini akan mengarah ke rute /nota/:id yang sudah didaftarkan di router.js
     if (res.data && res.data.id) {
       router.push('/nota/' + res.data.id);
     } else {
-      router.push('/riwayat'); // Fallback jika ID tidak ditemukan
+      // Jika karena alasan tertentu ID tidak balik, arahkan ke riwayat
+      router.push('/riwayat');
     }
   } catch (e) {
-    console.error(e);
+    console.error("Error Detail:", e);
     alert("Gagal Simpan: " + (e.response?.data?.message || e.message));
   }
 };
