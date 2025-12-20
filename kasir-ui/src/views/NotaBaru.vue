@@ -222,15 +222,22 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import api, { getImageUrl } from '../api';
-import ItemSearchInput from '../components/ItemSearchInput.vue';
 
 const router = useRouter();
 const masterItems = ref([]);
 const search = ref("");
-const activeTab = ref("katalog"); // Default tab mobile
+const activeTab = ref("katalog");
 const kasirNama = ref(localStorage.getItem('username') || 'Kasir');
 
-const form = ref({ customerNama: "", customerTelp: "", customerAlamat: "", tipe: 'JUAL', dp: 0 });
+const form = ref({ 
+  customerNama: "", 
+  customerTelp: "", 
+  customerAlamat: "", 
+  tipe: 'JUAL', 
+  dp: 0, 
+  bayar: 0 
+});
+
 const rows = ref([{ unitName: "", kerusakan: "", solusi: "", namaBarang: "", catatan: "", qty: 1, harga: 0, itemId: null, isChild: false }]);
 
 onMounted(async () => {
@@ -240,155 +247,83 @@ onMounted(async () => {
   } catch(e) { console.error("Gagal load item"); }
 });
 
-const cartCount = computed(() => rows.value.filter(r => r.itemId || (r.namaBarang && r.harga > 0)).length);
+const grandTotal = computed(() => rows.value.reduce((sum, r) => sum + (r.qty * r.harga), 0));
+
+// LOGIKA SISA & KEMBALIAN
+const sisaBayar = computed(() => {
+  const sisa = grandTotal.value - Number(form.value.dp) - Number(form.value.bayar);
+  return sisa > 0 ? sisa : 0;
+});
+
+const kembalian = computed(() => {
+  const bayarUser = Number(form.value.dp) + Number(form.value.bayar);
+  return bayarUser > grandTotal.value ? bayarUser - grandTotal.value : 0;
+});
 
 const filteredItems = computed(() => {
   const s = search.value.toLowerCase();
-  return masterItems.value.filter(i => 
-    i.nama.toLowerCase().includes(s) || 
-    i.kode.toLowerCase().includes(s)
-  );
+  return masterItems.value.filter(i => i.nama.toLowerCase().includes(s) || i.kode.toLowerCase().includes(s));
 });
 
 const formatNumber = (n) => new Intl.NumberFormat('id-ID').format(n || 0);
 
 const switchMode = (mode) => {
-  if(cartCount.value > 0 && !confirm("Keranjang akan dikosongkan?")) return;
+  if(grandTotal.value > 0 && !confirm("Keranjang akan dikosongkan?")) return;
   form.value.tipe = mode;
   rows.value = [{ unitName: "", kerusakan: "", solusi: "", namaBarang: "", catatan: "", qty: 1, harga: 0, itemId: null, isChild: false }];
 };
 
-// --- LOGIC SERVICE HELPERS ---
-const getRelatedRows = (mainIndex) => {
-  const related = [rows.value[mainIndex]];
-  for (let i = mainIndex + 1; i < rows.value.length; i++) {
-    if (rows.value[i].isChild) related.push(rows.value[i]);
-    else break;
-  }
-  return related;
-};
-
-const calculateUnitTotal = (mainIndex) => {
-  const related = getRelatedRows(mainIndex);
-  return related.reduce((sum, r) => sum + (r.qty * r.harga), 0);
-};
-
-// --- ACTIONS ---
 const onProductClick = (item) => {
-  if(item.stok <= 0) return alert("Maaf, stok barang habis!");
-  
-  // Jika baris pertama benar-benar kosong (default state), hapus dulu
+  if(item.stok <= 0) return alert("Stok habis!");
   if(rows.value.length === 1 && !rows.value[0].itemId && !rows.value[0].namaBarang) rows.value = [];
-  
-  // Cek apakah item sudah ada di keranjang, jika ada tambah qty saja
   const existing = rows.value.find(r => r.itemId === item.id);
-  if(existing) {
-    existing.qty++;
-  } else {
-    rows.value.push({ unitName: "", kerusakan: "", solusi: "", namaBarang: item.nama, qty: 1, harga: item.harga, itemId: item.id, isChild: false });
-  }
-
-  // Feedback mobile: pindah ke tab keranjang setelah klik (opsional)
-  // activeTab.value = "keranjang"; 
-};
-
-const onItemSelect = (row, item) => {
-  if(item.stok <= 0) {
-    alert("Maaf, stok sparepart ini habis!");
-    row.namaBarang = ""; row.itemId = null; return;
-  }
-  row.namaBarang = item.nama;
-  row.itemId = item.id;
-  row.harga = item.harga;
+  if(existing) existing.qty++;
+  else rows.value.push({ unitName: "", kerusakan: "", solusi: "", namaBarang: item.nama, qty: 1, harga: item.harga, itemId: item.id, isChild: false });
 };
 
 const addNewUnit = () => rows.value.push({ unitName: "", kerusakan: "", solusi: "", namaBarang: "", catatan: "", qty: 1, harga: 0, itemId: null, isChild: false });
 
 const addSolution = (index) => {
-  let lastChildIndex = index;
-  for(let i = index + 1; i < rows.value.length; i++) {
-    if(rows.value[i].isChild) lastChildIndex = i;
-    else break;
-  }
-  rows.value.splice(lastChildIndex + 1, 0, { unitName: "", kerusakan: "", solusi: "", namaBarang: "", catatan: "", qty: 1, harga: 0, itemId: null, isChild: true });
+  rows.value.splice(index + 1, 0, { unitName: "", kerusakan: "", solusi: "Tindakan Baru", namaBarang: "", catatan: "", qty: 1, harga: 0, itemId: null, isChild: true });
 };
 
 const removeRow = (index) => {
-  const rowToDelete = rows.value[index];
-  if(!rowToDelete.isChild) {
-    let countToDelete = 1;
-    for(let i = index + 1; i < rows.value.length; i++) {
-      if(rows.value[i].isChild) countToDelete++;
-      else break;
-    }
-    rows.value.splice(index, countToDelete);
-  } else {
-    rows.value.splice(index, 1);
-  }
+  rows.value.splice(index, 1);
   if(rows.value.length === 0) addNewUnit();
 };
 
-const getRowNumber = (currentIndex) => {
-  let count = 0;
-  for(let i=0; i<= currentIndex; i++) { if(!rows.value[i].isChild) count++; }
-  return count;
-};
+const getRelatedRows = (index) => rows.value.filter((r, i) => i === index || (i > index && r.isChild && !rows.value.slice(index + 1, i).some(x => !x.isChild)));
 
-const grandTotal = computed(() => rows.value.reduce((sum, r) => sum + (r.qty * r.harga), 0));
+const getRowNumber = (index) => rows.value.slice(0, index + 1).filter(r => !r.isChild).length;
 
 const saveNota = async () => {
-  // 1. Validasi Input: Memastikan data minimal terisi
-  if (!form.value.customerNama) {
-    return alert("Nama Customer wajib diisi!");
-  }
-  
-  // Memvalidasi apakah ada item yang dimasukkan (Retail maupun Service)
-  const validItems = rows.value.filter(r => r.namaBarang || r.solusi || r.unitName);
-  if (validItems.length === 0) {
-    return alert("Tambahkan minimal satu unit atau barang!");
-  }
+  if (!form.value.customerNama) return alert("Nama Customer wajib diisi!");
+  const validItems = rows.value.filter(r => r.namaBarang || r.solusi);
+  if (validItems.length === 0) return alert("Keranjang kosong!");
 
-  // 2. Pemetaan data ke format yang diminta Backend (Payload)
-  const itemsPayload = rows.value.map(r => ({
-    itemId: r.itemId,
-    namaBarang: r.namaBarang || r.solusi || 'Biaya Service',
-    catatan: form.value.tipe === 'SERVICE' 
-      ? `Unit: ${r.unitName || '-'} | Keluhan: ${r.kerusakan || '-'}` 
-      : 'Retail',
-    hargaSatuan: r.harga,
-    jumlah: r.qty
-  }));
+  const totalBayarUser = Number(form.value.dp) + Number(form.value.bayar);
 
   const payload = {
     ...form.value,
     kasirNama: kasirNama.value,
-    kasirId: 1, // Default ID admin/kasir (Bisa diubah sesuai login)
-    status: form.value.tipe === 'SERVICE' ? 'PROSES' : 'LUNAS',
-    // Ambil info unit pertama untuk ringkasan di tabel history
-    barangCustomer: form.value.tipe === 'SERVICE' 
-      ? (rows.value[0].unitName || 'Unit Service') 
-      : (itemsPayload[0]?.namaBarang || 'Retail'),
-    keluhan: form.value.tipe === 'SERVICE' ? (rows.value[0].kerusakan || '-') : '-',
-    items: itemsPayload
+    kasirId: 1,
+    // Jika Bayar + DP >= Total maka LUNAS, jika tidak maka PROSES
+    status: totalBayarUser >= grandTotal.value ? 'LUNAS' : 'PROSES',
+    barangCustomer: form.value.tipe === 'SERVICE' ? (rows.value[0].unitName || 'Service') : (rows.value[0].namaBarang || 'Retail'),
+    items: rows.value.map(r => ({
+      itemId: r.itemId,
+      namaBarang: r.namaBarang || r.solusi,
+      hargaSatuan: r.harga,
+      jumlah: r.qty,
+      catatan: form.value.tipe === 'SERVICE' ? `Unit: ${r.unitName}` : 'Retail'
+    }))
   };
 
-  // 3. Proses Pengiriman ke API & Redirect ke Detail
   try {
     const res = await api.post('/api/nota', payload);
-    alert("Nota Berhasil Disimpan!");
-    
-    // Redirect ke detail nota menggunakan ID yang baru saja dibuat oleh backend
-    // Ini akan mengarah ke rute /nota/:id yang sudah didaftarkan di router.js
-    if (res.data && res.data.id) {
-      router.push('/nota/' + res.data.id);
-    } else {
-      // Jika karena alasan tertentu ID tidak balik, arahkan ke riwayat
-      router.push('/riwayat');
-    }
-  } catch (e) {
-    console.error("Error Detail:", e);
-    alert("Gagal Simpan: " + (e.response?.data?.message || e.message));
-  }
+    alert(totalBayarUser >= grandTotal.value ? "Transaksi LUNAS!" : "Transaksi Disimpan!");
+    router.push('/nota/' + res.data.id);
+  } catch (e) { alert("Gagal Simpan"); }
 };
 </script>
 
