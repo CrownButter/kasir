@@ -21,7 +21,12 @@ public class NotaController {
 
     private final NotaService notaService;
     private final PdfService pdfService;
-
+    @GetMapping("/report")
+    public ResponseEntity<?> report(
+            @RequestParam("start") String start,
+            @RequestParam("end") String end) {
+        return ResponseEntity.ok(notaService.getReport(start, end));
+    }
     // --- 1. LIST SEMUA NOTA ---
     @GetMapping
     public ResponseEntity<?> list() {

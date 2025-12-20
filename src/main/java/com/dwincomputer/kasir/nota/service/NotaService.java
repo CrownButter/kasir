@@ -15,7 +15,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-
+import java.time.LocalTime;
 @Service
 @RequiredArgsConstructor
 public class NotaService {
@@ -24,6 +24,26 @@ public class NotaService {
     private final ItemRepository itemRepo;
 
     public List<NotaEntity> getAll() { return notaRepo.findAll(); }
+
+    public List<NotaEntity> getReport(String startDate, String endDate) {
+        // Konversi String "2025-12-21" menjadi waktu mulai (00:00:00) dan akhir (23:59:59)
+        LocalDateTime start = LocalDate.parse(startDate).atStartOfDay();
+        LocalDateTime end = LocalDate.parse(endDate).atTime(LocalTime.MAX);
+
+        List<NotaEntity> daftarNota = notaRepo.findByTanggalBetween(start, end);
+
+        // Hitung Total Modal tiap nota secara otomatis agar Frontend bisa baca field 'totalModal'
+        for (NotaEntity nota : daftarNota) {
+            BigDecimal totalModalNota = nota.getSnapshots().stream()
+                    .map(snap -> snap.getModal().multiply(BigDecimal.valueOf(snap.getJumlah())))
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            nota.setTotalModal(totalModalNota); // Pastikan ada field totalModal di NotaEntity
+        }
+
+        return daftarNota;
+    }
+
+
 
     public NotaEntity get(Long id) {
         return notaRepo.findById(id).orElseThrow(() -> new RuntimeException("Nota tidak ditemukan"));
