@@ -9,8 +9,6 @@ import UserProfile from '@/views/UserProfile.vue';
 import EditNota from '@/views/EditNota.vue';
 import ItemForm from '@/views/ItemForm.vue';
 import NotaDetail from '@/views/NotaDetail.vue';
-
-// PASTIKAN NAMA FILE INI PERSIS DI FOLDER src/views/
 import LaporanPenjualan from '@/views/LaporanPenjualan.vue'; 
 
 const routes = [
