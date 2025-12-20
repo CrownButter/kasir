@@ -181,8 +181,11 @@
                 Stok: {{ item.stok }}
               </span>
 
-              <div class="h-32 bg-gray-50 flex items-center justify-center">
-                <img v-if="item.imageUrl" :src="'http://localhost:8080' + item.imageUrl" class="w-full h-full object-cover" />
+              <div class="h-32 bg-gray-50 flex items-center justify-center overflow-hidden">
+                <img v-if="item.imageUrl"
+                     :src="getImageUrl(item.imageUrl)"
+                     class="w-full h-full object-cover" />
+
                 <i v-else class="bi bi-box text-3xl text-gray-300"></i>
               </div>
               <div class="p-3 bg-white border-t border-gray-50">
