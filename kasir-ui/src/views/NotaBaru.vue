@@ -223,7 +223,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import api from '../api';
+import api, { getImageUrl } from '../api';
 import ItemSearchInput from '../components/ItemSearchInput.vue';
 
 const router = useRouter();
