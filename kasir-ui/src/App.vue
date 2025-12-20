@@ -11,14 +11,13 @@
         </div>
 
         <div class="flex items-center gap-1 md:gap-3 flex-shrink-0">
-          <router-link to="/" class="hover:bg-blue-700 px-3 py-2 rounded transition text-sm font-medium flex items-center gap-2" active-class="bg-blue-800 shadow-inner">
-            <i class="bi bi-clock-history"></i>
-            <span class="hidden md:inline">Riwayat</span>
-          </router-link>
-
-          <router-link to="/tambah" class="bg-blue-500 hover:bg-blue-400 px-3 py-2 rounded-lg transition text-sm font-bold flex items-center gap-2 border border-blue-400 shadow-sm" active-class="bg-white text-blue-600 border-white">
+          <router-link to="/" class="bg-blue-500 hover:bg-blue-400 px-3 py-2 rounded-lg transition text-sm font-bold flex items-center gap-2 border border-blue-400 shadow-sm" active-class="bg-white text-blue-600 border-white">
             <i class="bi bi-plus-circle-fill"></i>
             <span class="hidden md:inline">Tambah Transaksi</span>
+          </router-link>
+          <router-link to="/riwayat" class="hover:bg-blue-700 px-3 py-2 rounded transition text-sm font-medium flex items-center gap-2" active-class="bg-blue-800 shadow-inner">
+            <i class="bi bi-clock-history"></i>
+            <span class="hidden md:inline">Riwayat</span>
           </router-link>
 
           <router-link to="/inventory" class="hover:bg-blue-700 px-3 py-2 rounded transition text-sm font-medium flex items-center gap-2" active-class="bg-blue-800">
