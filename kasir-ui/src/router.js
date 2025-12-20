@@ -7,7 +7,8 @@ import Inventory from './views/Inventory.vue';
 import AdminDashboard from './views/AdminDashboard.vue';
 import UserProfile from './views/UserProfile.vue';
 import EditNota from './views/EditNota.vue';
-import ItemForm from './views/ItemForm.vue'; 
+import ItemForm from './views/ItemForm.vue';
+import NotaDetail from './views/NotaDetail.vue';
 
 const routes = [
     { path: '/login', component: Login, meta: { guest: true } },
@@ -23,6 +24,7 @@ const routes = [
     
     { path: '/profile', component: UserProfile, meta: { requiresAuth: true } },
     { path: '/edit/:id', component: EditNota, meta: { requiresAuth: true } },
+    { path: '/nota/:id', component: NotaDetail, meta: { requiresAuth: true } },
 
     // HALAMAN KHUSUS ADMIN
     { 

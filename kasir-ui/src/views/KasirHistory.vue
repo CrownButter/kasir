@@ -5,7 +5,7 @@
       <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
         <i class="bi bi-clock-history"></i> Riwayat Transaksi
       </h2>
-      <button @click="$router.push('/tambah')" class="w-full md:w-auto bg-blue-600 text-white px-6 py-2 rounded shadow hover:bg-blue-700 font-bold flex items-center justify-center gap-2">
+      <button @click="$router.push('/')" class="w-full md:w-auto bg-blue-600 text-white px-6 py-2 rounded shadow hover:bg-blue-700 font-bold flex items-center justify-center gap-2">
         <i class="bi bi-plus-lg"></i> Buat Nota Baru
       </button>
     </div>

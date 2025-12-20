@@ -337,6 +337,14 @@ const getRowNumber = (currentIndex) => {
 const grandTotal = computed(() => rows.value.reduce((sum, r) => sum + (r.qty * r.harga), 0));
 
 const saveNota = async () => {
+  try {
+    const res = await api.post('/api/nota', payload); // Pastikan backend mengembalikan data nota yang baru dibuat
+    alert("Nota Berhasil Disimpan!");
+    router.push('/nota/' + res.data.id); 
+  } catch(e) { 
+    alert("Gagal Simpan"); 
+  }
+};
   if(!form.value.customerNama) return alert("Nama Customer wajib diisi!");
   const validItems = rows.value.filter(r => r.namaBarang || r.solusi || r.unitName);
   if(validItems.length === 0) return alert("Tambahkan minimal satu unit atau barang!");
