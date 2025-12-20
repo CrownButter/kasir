@@ -65,7 +65,7 @@
 
     <div v-else class="flex-1 flex overflow-hidden">
       
-      <div class="w-full md:w-[400px] flex flex-col bg-white border-r shadow-2xl z-30 overflow-hidden">
+      <div class="w-full md:w-[500px] flex flex-col bg-white border-r shadow-2xl z-30 overflow-hidden">
         
         <div class="bg-slate-900 p-6 text-center">
           <p class="text-blue-400 text-[10px] font-black uppercase tracking-widest mb-1">Total Bayar</p>
