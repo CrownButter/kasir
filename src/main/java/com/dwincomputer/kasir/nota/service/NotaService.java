@@ -26,18 +26,25 @@ public class NotaService {
     public List<NotaEntity> getAll() { return notaRepo.findAll(); }
 
     public List<NotaEntity> getReport(String startDate, String endDate) {
-        // Konversi String "2025-12-21" menjadi waktu mulai (00:00:00) dan akhir (23:59:59)
         LocalDateTime start = LocalDate.parse(startDate).atStartOfDay();
         LocalDateTime end = LocalDate.parse(endDate).atTime(LocalTime.MAX);
 
         List<NotaEntity> daftarNota = notaRepo.findByTanggalBetween(start, end);
 
-        // Hitung Total Modal tiap nota secara otomatis agar Frontend bisa baca field 'totalModal'
         for (NotaEntity nota : daftarNota) {
             BigDecimal totalModalNota = nota.getSnapshots().stream()
-                    .map(snap -> snap.getModal().multiply(BigDecimal.valueOf(snap.getJumlah())))
+                    .map(snap -> {
+                        // PROTEKSI: Jika modal NULL, anggap 0 agar tidak error saat dikali
+                        BigDecimal modal = (snap.getModal() == null) ? BigDecimal.ZERO : snap.getModal();
+
+                        // PROTEKSI: Jika jumlah NULL, anggap 0
+                        BigDecimal jumlah = (snap.getJumlah() == null) ? BigDecimal.ZERO : BigDecimal.valueOf(snap.getJumlah());
+
+                        return modal.multiply(jumlah);
+                    })
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
-            nota.setTotalModal(totalModalNota); // Pastikan ada field totalModal di NotaEntity
+
+            nota.setTotalModal(totalModalNota);
         }
 
         return daftarNota;
