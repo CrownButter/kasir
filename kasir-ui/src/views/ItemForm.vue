@@ -176,8 +176,19 @@ const translateError = (e) => {
 
 const validateForm = () => {
     errors.value = {};
-    if (!form.value.kode) { errors.value.kode = "Kode wajib diisi"; return false; }
-    if (!form.value.nama) { errors.value.nama = "Nama wajib diisi"; return false; }
+    if (!form.value.kode) { 
+        errors.value.kode = "Kode wajib diisi"; 
+        return false; 
+    }
+    if (!form.value.kode) { 
+      errors.value.kode = "Kode wajib diisi"; return false; }
+    if (!form.value.nama) { 
+      errors.value.nama = "Nama wajib diisi"; return false; 
+    }
+    if (form.value.stok <= 0) {
+        globalError.value = "Stok tidak boleh 0 atau negatif!";
+        return false;
+    }
     return true;
 };
 

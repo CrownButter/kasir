@@ -16,7 +16,12 @@ public class ItemService {
     private final ItemRepository repo;
 
     public ItemEntity save(ItemEntity item) {
-        // 1. Cek jika ini adalah data baru (ID null)
+        if (item.getKode() == null || item.getKode().length() < 3) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Kode produk minimal harus 3 karakter!");
+        }
+        if (item.getStok() == null || item.getStok() <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Stok awal produk minimal harus 1!");
+        }
         if (item.getId() == null) {
             if (repo.existsByNama(item.getNama())) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "Nama item '" + item.getNama() + "' sudah terdaftar!");
@@ -34,6 +39,7 @@ public class ItemService {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "Kode item '" + item.getKode() + "' sudah digunakan oleh item lain!");
             }
         }
+
 
         return repo.save(item);
     }

@@ -42,11 +42,20 @@
                       </td>
                       <td class="p-3 font-mono font-bold text-gray-600 uppercase">{{ item.kode }}</td>
                       <td class="p-3 font-bold text-gray-800 uppercase">{{ item.nama }}</td>
+                      
                       <td class="p-3 text-center">
-                          <span :class="item.stok > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'" class="px-2 py-1 rounded font-bold text-xs">
+                          <span :class="[
+                            'px-2 py-1 rounded font-bold text-xs flex items-center justify-center gap-1 mx-auto w-fit',
+                            item.stok <= 0 ? 'bg-red-100 text-red-800' : 
+                            item.stok < 5 ? 'bg-orange-100 text-orange-800 border border-orange-200' : 
+                            'bg-green-100 text-green-800'
+                          ]">
                               {{ item.stok }}
+                              <i v-if="item.stok > 0 && item.stok < 5" class="bi bi-exclamation-triangle-fill"></i>
+                              <i v-if="item.stok <= 0" class="bi bi-x-circle-fill"></i>
                           </span>
                       </td>
+
                       <td class="p-3 text-right text-gray-500">{{ formatRupiah(item.hargaBeli) }}</td>
                       <td class="p-3 text-right font-bold text-blue-600">{{ formatRupiah(item.harga) }}</td>
                       <td class="p-3 text-center">
@@ -59,6 +68,13 @@
                             </button>
                           </div>
                       </td>
+                  </tr>
+                  
+                  <tr v-if="items.length === 0">
+                    <td colspan="7" class="p-10 text-center text-gray-400">
+                      <i class="bi bi-inbox text-4xl block mb-2"></i>
+                      Belum ada data barang.
+                    </td>
                   </tr>
               </tbody>
           </table>
@@ -78,8 +94,11 @@ onMounted(() => { loadItems(); });
 const loadItems = async () => {
     try {
         const res = await api.get('/api/items');
+        // Urutkan berdasarkan ID terbaru
         items.value = res.data.sort((a, b) => b.id - a.id);
-    } catch(e) { console.error("Gagal load item"); }
+    } catch(e) { 
+        console.error("Gagal load item"); 
+    }
 };
 
 const deleteItem = async (id) => {
@@ -87,8 +106,23 @@ const deleteItem = async (id) => {
     try {
         await api.delete(`/api/items/${id}`);
         loadItems();
-    } catch(e) { alert("Gagal hapus item"); }
+    } catch(e) { 
+        alert("Gagal hapus item"); 
+    }
 };
 
 const formatRupiah = (val) => new Intl.NumberFormat('id-ID').format(val || 0);
 </script>
+
+<style scoped>
+/* Menambahkan sedikit animasi pada peringatan agar lebih terlihat */
+.bg-orange-100 {
+  animation: pulse-subtle 2s infinite;
+}
+
+@keyframes pulse-subtle {
+  0% { opacity: 1; }
+  50% { opacity: 0.8; }
+  100% { opacity: 1; }
+}
+</style>

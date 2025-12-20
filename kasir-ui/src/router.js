@@ -7,15 +7,13 @@ import Inventory from './views/Inventory.vue';
 import AdminDashboard from './views/AdminDashboard.vue';
 import UserProfile from './views/UserProfile.vue';
 import EditNota from './views/EditNota.vue';
-// TAMBAHKAN BARIS INI:
 import ItemForm from './views/ItemForm.vue'; 
 
 const routes = [
-    // Tambahkan meta guest: true agar halaman ini diproteksi jika user sudah login
     { path: '/login', component: Login, meta: { guest: true } },
     
-    { path: '/', component: KasirHistory, meta: { requiresAuth: true } },
-    { path: '/tambah', component: NotaBaru, meta: { requiresAuth: true } }, 
+    { path: '/', component: NotaBaru, meta: { requiresAuth: true } },
+    { path: '/riwayat', component: KasirHistory, meta: { requiresAuth: true } }, 
     { path: '/print/:id', component: NotaPrint, meta: { requiresAuth: true } },
     
     // Rute Inventory
