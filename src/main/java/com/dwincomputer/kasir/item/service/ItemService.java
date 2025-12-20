@@ -16,12 +16,15 @@ public class ItemService {
     private final ItemRepository repo;
 
     public ItemEntity save(ItemEntity item) {
+        // 1. Validasi Input
         if (item.getKode() == null || item.getKode().length() < 3) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Kode produk minimal harus 3 karakter!");
         }
-        if (item.getStok() == null || item.getStok() <= 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Stok awal produk minimal harus 1!");
+        if (item.getStok() == null || item.getStok() < 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Stok awal produk tidak boleh negatif!");
         }
+
+        // 2. Cek Duplikasi untuk Data Baru
         if (item.getId() == null) {
             if (repo.existsByNama(item.getNama())) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "Nama item '" + item.getNama() + "' sudah terdaftar!");
@@ -30,7 +33,7 @@ public class ItemService {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "Kode item '" + item.getKode() + "' sudah digunakan!");
             }
         }
-        // 2. Cek jika ini adalah update data lama
+        // 3. Cek Duplikasi untuk Update Data Lama
         else {
             if (repo.existsByNamaAndIdNot(item.getNama(), item.getId())) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "Nama item '" + item.getNama() + "' sudah digunakan oleh item lain!");
@@ -40,15 +43,16 @@ public class ItemService {
             }
         }
 
-
         return repo.save(item);
     }
 
     public List<ItemEntity> all() {
         return repo.findAll();
-        public ItemEntity getByKode(String kode) {
-            return repo.findByKode(kode).orElse(null);
-        }
+    }
+
+    // Method ini sekarang sudah berada di luar method all()
+    public ItemEntity getByKode(String kode) {
+        return repo.findByKode(kode).orElse(null);
     }
 
     public void delete(Long id) {
