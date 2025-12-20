@@ -337,22 +337,23 @@ const getRowNumber = (currentIndex) => {
 const grandTotal = computed(() => rows.value.reduce((sum, r) => sum + (r.qty * r.harga), 0));
 
 const saveNota = async () => {
-  try {
-    const res = await api.post('/api/nota', payload); // Pastikan backend mengembalikan data nota yang baru dibuat
-    alert("Nota Berhasil Disimpan!");
-    router.push('/nota/' + res.data.id); 
-  } catch(e) { 
-    alert("Gagal Simpan"); 
+  // 1. Validasi Input [cite: 2576, 2588]
+  if (!form.value.customerNama) {
+    return alert("Nama Customer wajib diisi!");
   }
-};
-  if(!form.value.customerNama) return alert("Nama Customer wajib diisi!");
+  
   const validItems = rows.value.filter(r => r.namaBarang || r.solusi || r.unitName);
-  if(validItems.length === 0) return alert("Tambahkan minimal satu unit atau barang!");
+  if (validItems.length === 0) {
+    return alert("Tambahkan minimal satu unit atau barang!");
+  }
 
+  // 2. Pemetaan data ke format Backend (Payload) [cite: 2589, 2600]
   const itemsPayload = rows.value.map(r => ({
     itemId: r.itemId,
     namaBarang: r.namaBarang || r.solusi || 'Biaya Service',
-    catatan: form.value.tipe === 'SERVICE' ? `Unit: ${r.unitName || '-'} | Keluhan: ${r.kerusakan || '-'}` : 'Retail',
+    catatan: form.value.tipe === 'SERVICE' 
+      ? `Unit: ${r.unitName || '-'} | Keluhan: ${r.kerusakan || '-'}` 
+      : 'Retail',
     hargaSatuan: r.harga,
     jumlah: r.qty
   }));
@@ -360,18 +361,32 @@ const saveNota = async () => {
   const payload = {
     ...form.value,
     kasirNama: kasirNama.value,
-    kasirId: 1,
+    kasirId: 1, // Default ID admin/kasir
     status: form.value.tipe === 'SERVICE' ? 'PROSES' : 'LUNAS',
-    barangCustomer: form.value.tipe === 'SERVICE' ? (rows.value[0].unitName || 'Unit Service') : (itemsPayload[0]?.namaBarang || 'Retail'),
+    barangCustomer: form.value.tipe === 'SERVICE' 
+      ? (rows.value[0].unitName || 'Unit Service') 
+      : (itemsPayload[0]?.namaBarang || 'Retail'),
     keluhan: form.value.tipe === 'SERVICE' ? (rows.value[0].kerusakan || '-') : '-',
     items: itemsPayload
   };
 
+  // 3. Proses Pengiriman ke API & Redirect [cite: 2621, 2625]
   try {
-    await api.post('/api/nota', payload);
+    const res = await api.post('/api/nota', payload);
     alert("Nota Berhasil Disimpan!");
-    router.push('/');
-  } catch(e) { alert("Gagal Simpan"); }
+    
+    /** * PERBAIKAN: Redirect ke detail nota menggunakan ID 
+     * yang baru saja dibuat oleh backend.
+     */
+    if (res.data && res.data.id) {
+      router.push('/nota/' + res.data.id);
+    } else {
+      router.push('/riwayat'); // Fallback jika ID tidak ditemukan
+    }
+  } catch (e) {
+    console.error(e);
+    alert("Gagal Simpan: " + (e.response?.data?.message || e.message));
+  }
 };
 </script>
 
