@@ -12,5 +12,6 @@ public interface ItemRepository extends JpaRepository<ItemEntity, Long> {
     // Opsional: Untuk keperluan update (mengecek nama yang sama tapi ID berbeda)
     boolean existsByNamaAndIdNot(String nama, Long id);
     boolean existsByKodeAndIdNot(String kode, Long id);
+
     Optional<ItemEntity> findByKode(String kode);
 }

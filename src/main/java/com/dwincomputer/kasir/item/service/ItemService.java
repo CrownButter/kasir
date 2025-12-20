@@ -46,6 +46,9 @@ public class ItemService {
 
     public List<ItemEntity> all() {
         return repo.findAll();
+        public ItemEntity getByKode(String kode) {
+            return repo.findByKode(kode).orElse(null);
+        }
     }
 
     public void delete(Long id) {
