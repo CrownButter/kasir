@@ -34,10 +34,13 @@ public class NotaController {
         return ResponseEntity.ok(notaService.get(id));
     }
 
-    // --- 3. BUAT NOTA BARU (Hanya SATU method create di sini) ---
+    // --- 3. BUAT NOTA BARU ---
+    // Method ini yang akan dipanggil oleh Frontend (NotaBaru.vue)
     @PostMapping
     public ResponseEntity<?> create(@Valid @RequestBody CreateNotaRequest req) {
-        return ResponseEntity.ok(notaService.create(req));
+        // NotaService.create harus mengembalikan NotaEntity yang baru disimpan (termasuk ID-nya)
+        NotaEntity savedNota = notaService.create(req);
+        return ResponseEntity.ok(savedNota);
     }
 
     // --- 4. EDIT DATA NOTA ---
@@ -57,21 +60,13 @@ public class NotaController {
     // --- 6. DOWNLOAD PDF ---
     @GetMapping("/{id}/pdf")
     public ResponseEntity<byte[]> downloadPdf(@PathVariable Long id) throws IOException {
-        // Ambil data nota
         NotaEntity nota = notaService.get(id);
-
-        // Generate PDF byte array dari Service
         byte[] pdfBytes = pdfService.generateNotaPdf(nota);
 
-        // Return sebagai file download
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=Nota-" + nota.getKodeNota() + ".pdf")
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(pdfBytes);
     }
 
-    @PostMapping
-    public Nota simpan(@RequestBody Nota nota) {
-        return service.simpanNota(nota); // Mengembalikan objek Nota hasil simpan
-    }
 }
