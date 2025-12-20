@@ -10,126 +10,110 @@
 
     <div class="p-3 md:p-4 bg-white shadow-sm flex justify-center items-center flex-shrink-0 z-30 border-b gap-4">
       <div class="flex bg-gray-100 p-1 rounded-full border">
-        <button type="button" @click="switchMode('JUAL')" :class="form.tipe === 'JUAL' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500'" class="px-6 md:px-8 py-2 rounded-full text-[10px] md:text-xs font-bold transition-all uppercase tracking-wider">Retail</button>
-        <button type="button" @click="switchMode('SERVICE')" :class="form.tipe === 'SERVICE' ? 'bg-orange-600 text-white shadow-md' : 'text-gray-500'" class="px-6 md:px-8 py-2 rounded-full text-[10px] md:text-xs font-bold transition-all uppercase tracking-wider">Service</button>
+        <button type="button" @click="switchMode('JUAL')" :class="form.tipe === 'JUAL' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500'" class="px-6 md:px-8 py-2 rounded-full text-[10px] md:text-xs font-bold transition-all uppercase tracking-wider">Retail / Jual</button>
+        <button type="button" @click="switchMode('SERVICE')" :class="form.tipe === 'SERVICE' ? 'bg-orange-600 text-white shadow-md' : 'text-gray-500'" class="px-6 md:px-8 py-2 rounded-full text-[10px] md:text-xs font-bold transition-all uppercase tracking-wider">Service / Perbaikan</button>
       </div>
     </div>
 
-    <div v-if="form.tipe === 'SERVICE'" class="flex-1 overflow-auto p-4 md:p-8 bg-gray-50">
-      <div class="max-w-5xl mx-auto space-y-8">
-          <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-              <h2 class="font-bold text-gray-800 mb-4">Informasi Pelanggan</h2>
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <input v-model="form.customerNama" placeholder="Nama Lengkap *" class="p-3 bg-gray-50 border rounded-xl font-bold outline-none focus:ring-2 focus:ring-orange-200" />
-                <input v-model="form.customerTelp" placeholder="Nomor WhatsApp" class="p-3 bg-gray-50 border rounded-xl outline-none focus:ring-2 focus:ring-orange-200" />
-                <input v-model="form.customerAlamat" placeholder="Alamat" class="p-3 bg-gray-50 border rounded-xl outline-none focus:ring-2 focus:ring-orange-200" />
-              </div>
-          </div>
-          
-          <div v-for="(row, index) in rows" :key="index">
-              <div v-if="!row.isChild" class="bg-white rounded-2xl border p-4 mb-4 shadow-sm">
-                  <div class="flex justify-between items-center mb-4">
-                    <span class="font-bold text-orange-600 text-sm">UNIT #{{ getRowNumber(index) }}</span>
-                    <button @click="removeRow(index)" class="text-red-400 hover:text-red-600"><i class="bi bi-trash"></i></button>
-                  </div>
-                  <input v-model="row.unitName" placeholder="Nama Unit (Contoh: Printer Epson L3110)" class="w-full p-3 bg-gray-50 border rounded-xl mb-3 font-bold" />
-                  <div class="space-y-2">
-                    <div v-for="(subRow, subIndex) in getRelatedRows(index)" :key="subIndex" class="flex gap-2 items-center bg-white p-2 border rounded-lg shadow-sm">
-                       <input v-model="subRow.solusi" placeholder="Tindakan / Sparepart" class="flex-1 p-2 border-none outline-none text-sm" />
-                       <input v-model="subRow.harga" type="number" placeholder="Harga" class="w-28 p-2 border-l text-right font-mono text-sm" />
-                       <button v-if="subRow.isChild" @click="removeRow(index + subIndex)" class="text-red-300"><i class="bi bi-x-circle"></i></button>
-                    </div>
-                  </div>
-                  <button @click="addSolution(index)" class="mt-3 text-[10px] text-orange-600 font-black uppercase tracking-widest">+ Detail Biaya</button>
-              </div>
-          </div>
-          <button @click="addNewUnit" class="w-full p-6 border-2 border-dashed rounded-2xl text-gray-400 font-bold hover:bg-orange-50 transition-all uppercase text-xs tracking-widest">+ TAMBAH UNIT BARU</button>
-      </div>
-    </div>
-
-    <div v-else class="flex-1 flex flex-col md:flex-row overflow-hidden relative">
-      <div class="w-full md:w-1/2 flex flex-col bg-white border-r shadow-xl z-10 overflow-hidden">
-        <div class="bg-black p-4 text-center">
-          <p class="text-green-500 text-[10px] font-mono uppercase mb-1">Total Tagihan</p>
-          <h1 class="text-3xl font-mono text-green-400 font-bold tracking-tighter">{{ formatNumber(grandTotal) }}</h1>
+    <div class="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+      
+      <div class="w-full md:w-1/3 flex flex-col bg-white border-r shadow-2xl z-20 overflow-hidden">
+        
+        <div class="bg-slate-900 p-5 text-center flex-shrink-0">
+          <p class="text-green-500 text-[10px] font-mono uppercase tracking-[0.2em] mb-1">Total Tagihan</p>
+          <h1 class="text-4xl font-mono text-green-400 font-black tracking-tighter">
+            {{ formatNumber(grandTotal) }}
+          </h1>
         </div>
 
-        <div class="flex-1 overflow-y-auto p-4 space-y-3">
-          <input v-model="form.customerNama" placeholder="Nama Customer *" class="w-full border-2 p-3 rounded-xl text-sm font-bold mb-4 outline-none focus:border-blue-400" />
-          
-          <div v-for="(row, index) in rows" :key="index" v-show="row.namaBarang" class="flex justify-between items-center p-3 border rounded-xl bg-white shadow-sm">
+        <div class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/50">
+          <div class="space-y-1 mb-4">
+             <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Data Pelanggan</label>
+             <input v-model="form.customerNama" placeholder="Nama Customer *" class="w-full border-2 p-3 rounded-xl text-sm font-bold outline-none focus:border-blue-500 focus:bg-white transition bg-white shadow-sm" />
+          </div>
+
+          <div v-for="(row, index) in rows" :key="index" v-show="row.namaBarang" class="flex justify-between items-center p-3 border-2 border-transparent bg-white rounded-2xl shadow-sm hover:border-blue-200 transition">
             <div class="flex-1">
-              <p class="font-bold text-sm text-gray-800">{{ row.namaBarang }}</p>
+              <p class="font-bold text-sm text-slate-800 line-clamp-1">{{ row.namaBarang }}</p>
               <div class="flex items-center gap-2 mt-1">
-                <span class="bg-blue-100 text-blue-700 text-[10px] px-2 py-0.5 rounded font-bold">{{ row.qty }}x</span>
-                <span class="text-[10px] text-gray-400 font-mono">@ {{ formatNumber(row.harga) }}</span>
+                <span class="bg-blue-100 text-blue-700 text-[10px] px-2 py-0.5 rounded font-black">{{ row.qty }}x</span>
+                <span class="text-[10px] text-slate-400 font-mono">@ {{ formatNumber(row.harga) }}</span>
               </div>
             </div>
-            <button @click="removeRow(index)" class="text-red-300 hover:text-red-500 transition"><i class="bi bi-trash-fill"></i></button>
+            <div class="text-right flex flex-col items-end gap-1">
+               <p class="font-black text-sm text-slate-900 font-mono">{{ formatNumber(row.qty * row.harga) }}</p>
+               <button @click="removeRow(index)" class="text-red-300 hover:text-red-500 transition-colors p-1"><i class="bi bi-trash3-fill"></i></button>
+            </div>
           </div>
-          
-          <div v-if="cartCount === 0" class="flex flex-col items-center justify-center h-40 text-gray-300">
-            <i class="bi bi-cart-x text-4xl mb-2"></i>
-            <p class="text-xs font-bold uppercase tracking-widest">Keranjang Kosong</p>
+
+          <div v-if="cartCount === 0" class="flex flex-col items-center justify-center h-48 text-slate-300">
+            <i class="bi bi-cart-x text-5xl mb-3 opacity-20"></i>
+            <p class="text-xs font-black uppercase tracking-widest">Keranjang Kosong</p>
           </div>
         </div>
 
-        <div class="p-4 bg-gray-50 border-t space-y-3 shadow-inner">
-          <div class="grid grid-cols-2 gap-3">
+        <div class="p-5 bg-white border-t-4 border-gray-100 space-y-4 shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
+          <div class="grid grid-cols-2 gap-4">
             <div class="space-y-1">
-              <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Uang Muka (DP)</label>
-              <input v-model="form.dp" type="number" class="w-full p-2.5 border rounded-xl font-mono font-bold text-sm focus:ring-2 focus:ring-gray-200 outline-none" placeholder="0" />
+              <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                <i class="bi bi-wallet2 text-blue-500"></i> Uang Muka (DP)
+              </label>
+              <input v-model="form.dp" type="number" class="w-full p-3 border-2 rounded-xl font-mono font-bold text-base focus:border-blue-400 outline-none transition bg-slate-50" placeholder="0" />
             </div>
             <div class="space-y-1">
-              <label class="text-[9px] font-black text-blue-600 uppercase tracking-widest">Bayar (Cash)</label>
-              <input v-model="form.bayar" type="number" class="w-full p-2.5 border-2 border-blue-400 rounded-xl font-mono font-bold bg-blue-50 text-sm focus:ring-2 focus:ring-blue-200 outline-none" placeholder="0" />
+              <label class="text-[10px] font-black text-blue-600 uppercase tracking-widest flex items-center gap-1">
+                <i class="bi bi-cash-coin"></i> Bayar (Cash)
+              </label>
+              <input v-model="form.bayar" type="number" class="w-full p-3 border-2 border-blue-400 rounded-xl font-mono font-bold bg-blue-50 text-base focus:ring-4 focus:ring-blue-100 outline-none transition text-blue-700" placeholder="0" />
             </div>
           </div>
 
-          <div class="flex justify-between items-center p-3 bg-white rounded-2xl border-2 border-dashed">
-            <div>
-              <p class="text-[9px] font-black text-gray-400 uppercase leading-none mb-1">Sisa Tagihan</p>
-              <p class="text-xl font-black text-red-600 font-mono leading-none">{{ formatNumber(sisaBayar) }}</p>
+          <div class="flex justify-between items-center p-4 bg-slate-900 rounded-2xl">
+            <div class="border-r border-slate-700 pr-4">
+              <p class="text-[9px] font-black text-slate-500 uppercase mb-1">Sisa Tagihan</p>
+              <p class="text-xl font-black text-red-500 font-mono leading-none">{{ formatNumber(sisaBayar) }}</p>
             </div>
-            <div class="text-right">
-              <p class="text-[9px] font-black text-gray-400 uppercase leading-none mb-1">Kembalian</p>
-              <p class="text-xl font-black text-green-600 font-mono leading-none">{{ formatNumber(kembalian) }}</p>
+            <div class="text-right pl-4">
+              <p class="text-[9px] font-black text-slate-500 uppercase mb-1">Kembalian</p>
+              <p class="text-xl font-black text-green-400 font-mono leading-none">{{ formatNumber(kembalian) }}</p>
             </div>
           </div>
         </div>
       </div>
 
-      <div class="flex-1 bg-gray-200 flex flex-col overflow-hidden">
-        <div class="p-4 bg-white shadow-sm flex items-center gap-3">
+      <div class="flex-1 bg-gray-100 flex flex-col overflow-hidden">
+        <div class="p-4 bg-white shadow-sm flex items-center gap-4">
           <div class="relative flex-1">
-            <i class="bi bi-search absolute left-4 top-3 text-gray-400"></i>
-            <input v-model="search" placeholder="Cari nama barang..." class="w-full pl-11 p-3 border rounded-full bg-gray-50 outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 transition" />
+            <i class="bi bi-search absolute left-5 top-3.5 text-slate-400"></i>
+            <input v-model="search" placeholder="Ketik nama produk atau barcode..." class="w-full pl-12 p-3.5 border-none rounded-2xl bg-gray-100 outline-none focus:bg-white focus:ring-2 focus:ring-blue-400 transition text-sm font-bold shadow-inner" />
           </div>
         </div>
-        <div class="flex-1 overflow-y-auto p-4">
-          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+
+        <div class="flex-1 overflow-y-auto p-6">
+          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5">
             <div v-for="item in filteredItems" :key="item.id" 
                  @click="onProductClick(item)" 
                  :class="{'shake-anim': item.isShaking}"
-                 class="bg-white p-3 rounded-2xl border-2 border-transparent hover:border-blue-500 cursor-pointer transition shadow-sm relative overflow-hidden active:scale-95 group">
+                 class="bg-white p-3 rounded-[2.5rem] border-4 border-transparent hover:border-blue-500 cursor-pointer transition-all shadow-md relative group overflow-hidden active:scale-95 flex flex-col items-center text-center">
               
               <span :class="[
-                  'absolute top-2 right-2 px-2 py-0.5 rounded-full font-bold text-[9px] z-10',
-                  item.stok <= 0 ? 'bg-red-600 text-white' : 
-                  item.stok < 5 ? 'bg-orange-500 text-white animate-pulse' : 'bg-blue-100 text-blue-700'
+                  'absolute top-4 right-4 px-2.5 py-1 rounded-full font-black text-[9px] z-10 shadow-sm border',
+                  item.stok <= 0 ? 'bg-red-600 text-white border-red-700' : 
+                  item.stok < 5 ? 'bg-orange-500 text-white animate-pulse border-orange-600' : 'bg-blue-100 text-blue-700 border-blue-200'
               ]">
-                {{ item.stok }}
+                STK: {{ item.stok }}
               </span>
 
-              <div class="h-24 bg-gray-50 rounded-xl mb-2 flex items-center justify-center overflow-hidden">
-                <img v-if="item.imageUrl" :src="getImageUrl(item.imageUrl)" class="h-full object-cover group-hover:scale-110 transition duration-300" />
-                <i v-else class="bi bi-box text-2xl text-gray-200"></i>
+              <div class="w-full aspect-square bg-slate-50 rounded-[2rem] mb-3 flex items-center justify-center overflow-hidden border">
+                <img v-if="item.imageUrl" :src="getImageUrl(item.imageUrl)" class="w-full h-full object-cover group-hover:scale-110 transition duration-500" />
+                <i v-else class="bi bi-box-seam text-4xl text-slate-200"></i>
               </div>
-              <h4 class="text-[10px] font-bold text-gray-700 uppercase line-clamp-2 h-8">{{ item.nama }}</h4>
-              <p class="text-blue-700 font-black mt-1 text-sm font-mono">{{ formatNumber(item.harga) }}</p>
+              
+              <h4 class="text-[11px] font-black text-slate-700 uppercase line-clamp-2 h-8 leading-tight px-1 mb-2">{{ item.nama }}</h4>
+              <p class="text-blue-600 font-black text-sm font-mono bg-blue-50 px-3 py-1 rounded-full">{{ formatNumber(item.harga) }}</p>
 
-              <div v-if="item.stok <= 0" class="absolute inset-0 bg-white/60 flex items-center justify-center backdrop-blur-[1px]">
-                 <span class="bg-red-600 text-white text-[10px] px-3 py-1 rounded-full font-black uppercase rotate-12 shadow-lg">Habis</span>
+              <div v-if="item.stok <= 0" class="absolute inset-0 bg-white/70 flex items-center justify-center backdrop-blur-[2px] z-20">
+                 <span class="bg-red-600 text-white text-[10px] px-4 py-1.5 rounded-full font-black uppercase rotate-[-10deg] shadow-xl">Stok Habis</span>
               </div>
             </div>
           </div>
@@ -137,14 +121,15 @@
       </div>
     </div>
 
-    <div class="p-4 md:p-6 bg-white border-t flex justify-center items-center flex-shrink-0 z-30">
+    <div class="p-5 md:p-8 bg-white border-t flex justify-center items-center flex-shrink-0 z-30">
       <button @click="saveNota" 
-              :class="form.tipe === 'SERVICE' ? 'bg-orange-600 hover:bg-orange-700' : 'bg-blue-600 hover:bg-blue-700'" 
-              class="w-full md:w-1/2 py-4 text-white rounded-3xl font-black shadow-lg transition active:scale-95 uppercase tracking-widest text-sm flex items-center justify-center gap-3">
-        <i class="bi bi-cloud-arrow-up-fill text-xl"></i>
-        Simpan Transaksi Sekarang
+              :class="form.tipe === 'SERVICE' ? 'bg-orange-600 hover:bg-orange-700 shadow-orange-200' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-200'" 
+              class="w-full md:w-2/3 lg:w-1/2 py-5 text-white rounded-[2rem] font-black shadow-2xl transition-all transform active:scale-95 uppercase tracking-[0.2em] text-base flex items-center justify-center gap-4">
+        <i class="bi bi-cloud-check-fill text-2xl"></i>
+        Proses & Simpan Transaksi
       </button>
     </div>
+
   </div>
 </template>
 
@@ -158,7 +143,7 @@ const masterItems = ref([]);
 const search = ref("");
 const kasirNama = ref(localStorage.getItem('username') || 'Kasir');
 
-// Toast Logic
+// TOAST NOTIFICATION LOGIC
 const toast = reactive({ show: false, message: "" });
 const triggerToast = (msg) => {
   toast.message = msg;
@@ -166,6 +151,7 @@ const triggerToast = (msg) => {
   setTimeout(() => { toast.show = false; }, 3000);
 };
 
+// FORM DATA
 const form = ref({ customerNama: "", customerTelp: "", customerAlamat: "", tipe: 'JUAL', dp: 0, bayar: 0 });
 const rows = ref([{ unitName: "", kerusakan: "", solusi: "", namaBarang: "", catatan: "", qty: 1, harga: 0, itemId: null, isChild: false }]);
 
@@ -179,16 +165,9 @@ onMounted(async () => {
 const grandTotal = computed(() => rows.value.reduce((sum, r) => sum + (r.qty * r.harga), 0));
 const cartCount = computed(() => rows.value.filter(r => r.itemId || r.namaBarang).length);
 
-// --- HITUNGAN REALTIME (SISA & KEMBALIAN) ---
-const sisaBayar = computed(() => {
-  const sisa = grandTotal.value - (Number(form.value.dp) + Number(form.value.bayar));
-  return sisa > 0 ? sisa : 0;
-});
-
-const kembalian = computed(() => {
-  const totalDiterima = Number(form.value.dp) + Number(form.value.bayar);
-  return totalDiterima > grandTotal.value ? totalDiterima - grandTotal.value : 0;
-});
+// REALTIME CALCULATION
+const sisaBayar = computed(() => Math.max(0, grandTotal.value - (Number(form.value.dp) + Number(form.value.bayar))));
+const kembalian = computed(() => Math.max(0, (Number(form.value.dp) + Number(form.value.bayar)) - grandTotal.value));
 
 const filteredItems = computed(() => {
   const s = search.value.toLowerCase();
@@ -197,6 +176,7 @@ const filteredItems = computed(() => {
 
 const formatNumber = (n) => new Intl.NumberFormat('id-ID').format(n || 0);
 
+// LOGIC ADD TO CART
 const onProductClick = (item) => {
   if(item.stok <= 0) {
     item.isShaking = true;
@@ -209,7 +189,7 @@ const onProductClick = (item) => {
   if(existing) {
     if(existing.qty + 1 > item.stok) {
       item.isShaking = true;
-      triggerToast(`Stok hanya tersedia ${item.stok} unit.`);
+      triggerToast(`Stok terbatas! Tersedia ${item.stok} unit.`);
       setTimeout(() => { item.isShaking = false; }, 500);
       return;
     }
@@ -226,26 +206,32 @@ const switchMode = (mode) => {
   rows.value = [{ unitName: "", kerusakan: "", solusi: "", namaBarang: "", catatan: "", qty: 1, harga: 0, itemId: null, isChild: false }];
 };
 
-const addNewUnit = () => rows.value.push({ unitName: "", kerusakan: "", solusi: "", namaBarang: "", catatan: "", qty: 1, harga: 0, itemId: null, isChild: false });
-const addSolution = (index) => rows.value.splice(index + 1, 0, { unitName: "", kerusakan: "", solusi: "", namaBarang: "", catatan: "", qty: 1, harga: 0, itemId: null, isChild: true });
-const removeRow = (index) => { rows.value.splice(index, 1); if(rows.value.length === 0) addNewUnit(); };
-const getRelatedRows = (index) => rows.value.filter((r, i) => i === index || (i > index && r.isChild && !rows.value.slice(index + 1, i).some(x => !x.isChild)));
-const getRowNumber = (index) => rows.value.slice(0, index + 1).filter(r => !r.isChild).length;
+// ACTIONS
+const removeRow = (index) => {
+  rows.value.splice(index, 1);
+  if(rows.value.length === 0) rows.value = [{ unitName: "", kerusakan: "", solusi: "", namaBarang: "", catatan: "", qty: 1, harga: 0, itemId: null, isChild: false }];
+};
 
+// SAVE LOGIC
 const saveNota = async () => {
-  if (!form.value.customerNama) { triggerToast("Nama Pelanggan wajib diisi!"); return; }
-  if (cartCount.value === 0) { triggerToast("Keranjang belanja kosong!"); return; }
+  if (!form.value.customerNama) return triggerToast("Nama Pelanggan wajib diisi!");
+  if (cartCount.value === 0) return triggerToast("Pilih minimal satu barang!");
   
-  const totalDiterima = Number(form.value.dp) + Number(form.value.bayar);
-  const isLunas = totalDiterima >= grandTotal.value;
-  
+  const totalInput = Number(form.value.dp) + Number(form.value.bayar);
+  const isLunas = totalInput >= grandTotal.value;
   const payload = {
     ...form.value,
     kasirNama: kasirNama.value,
     kasirId: 1,
     status: form.value.tipe === 'SERVICE' ? 'PROSES' : (isLunas ? 'LUNAS' : 'PROSES'),
     barangCustomer: form.value.tipe === 'SERVICE' ? (rows.value[0].unitName || 'Service') : (rows.value[0].namaBarang || 'Retail'),
-    items: rows.value.map(r => ({ itemId: r.itemId, namaBarang: r.namaBarang || r.solusi, hargaSatuan: r.harga, jumlah: r.qty, catatan: form.value.tipe === 'SERVICE' ? `Unit: ${r.unitName}` : 'Retail' }))
+    items: rows.value.filter(r => r.namaBarang).map(r => ({ 
+        itemId: r.itemId, 
+        namaBarang: r.namaBarang, 
+        hargaSatuan: r.harga, 
+        jumlah: r.qty, 
+        catatan: form.value.tipe === 'SERVICE' ? `Unit: ${r.unitName}` : 'Retail' 
+    }))
   };
 
   try {
@@ -257,13 +243,13 @@ const saveNota = async () => {
 
 <style scoped>
 /* Scrollbar */
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 
 /* Toast Animation */
-.toast-enter-active, .toast-leave-active { transition: all 0.4s ease; }
-.toast-enter-from { opacity: 0; transform: translate(-50%, -20px); }
-.toast-leave-to { opacity: 0; transform: translate(-50%, -20px); }
+.toast-enter-active, .toast-leave-active { transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+.toast-enter-from { opacity: 0; transform: translate(-50%, -100px); }
+.toast-leave-to { opacity: 0; transform: translate(-50%, -100px); }
 
 /* Shake Animation */
 .shake-anim { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; border-color: #ef4444 !important; }
@@ -274,12 +260,6 @@ const saveNota = async () => {
   40%, 60% { transform: translate3d(4px, 0, 0); }
 }
 
-/* Pulse for low stock */
-.animate-pulse { animation: pulse 1.5s infinite; }
-@keyframes pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.7; transform: scale(1.05); }
-}
-
+/* Hide Spinner Number */
 input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 </style>
