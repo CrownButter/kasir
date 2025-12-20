@@ -31,7 +31,7 @@
             <i class="bi bi-shield-lock-fill"></i>
             <span class="hidden md:inline">Admin</span>
           </router-link>
-          <router-link v-if="userRole === 'ADMIN'" to="/admin?tab=LAPORAN" 
+          <router-link v-if="userRole === 'ADMIN'" to="/laporan" 
     class="bg-green-600 hover:bg-green-500 px-3 py-2 rounded-lg transition text-sm font-bold flex items-center gap-2 border border-green-400 shadow-sm">
     <i class="bi bi-file-earmark-bar-graph"></i>
     <span class="hidden md:inline">Laporan Penjualan</span>

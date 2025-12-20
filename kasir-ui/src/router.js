@@ -9,7 +9,7 @@ import UserProfile from './views/UserProfile.vue';
 import EditNota from './views/EditNota.vue';
 import ItemForm from './views/ItemForm.vue';
 import NotaDetail from './views/NotaDetail.vue';
-
+import LaporanPenjualan from './views/LaporanPenjualan.vue';
 const routes = [
     { path: '/login', component: Login, meta: { guest: true } },
     
@@ -25,6 +25,12 @@ const routes = [
     { path: '/profile', component: UserProfile, meta: { requiresAuth: true } },
     { path: '/edit/:id', component: EditNota, meta: { requiresAuth: true } },
     { path: '/nota/:id', component: NotaDetail, meta: { requiresAuth: true } },
+    {
+    path: '/laporan',
+    name: 'LaporanPenjualan',
+    component: LaporanPenjualan,
+    meta: { requiresAuth: true, role: 'ADMIN' } // Hanya untuk Admin
+  },
 
     // HALAMAN KHUSUS ADMIN
     { 
