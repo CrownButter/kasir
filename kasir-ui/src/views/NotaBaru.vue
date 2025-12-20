@@ -17,7 +17,7 @@
 
     <div class="flex-1 flex flex-col md:flex-row overflow-hidden relative">
       
-      <div class="w-full md:w-1/3 flex flex-col bg-white border-r shadow-2xl z-20 overflow-hidden">
+      <div class="w-full md:w-1/2 flex flex-col bg-white border-r shadow-2xl z-20 overflow-hidden">
         
         <div class="bg-slate-900 p-5 text-center flex-shrink-0">
           <p class="text-green-500 text-[10px] font-mono uppercase tracking-[0.2em] mb-1">Total Tagihan</p>
@@ -25,6 +25,35 @@
             {{ formatNumber(grandTotal) }}
           </h1>
         </div>
+        <div class="p-4 bg-white shadow-md border-b">
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div class="relative">
+      <label class="text-[10px] font-black text-blue-600 uppercase mb-1 block ml-2">Scan Barcode (Tekan Enter)</label>
+      <div class="relative">
+        <i class="bi bi-upc-scan absolute left-4 top-3.5 text-blue-500"></i>
+        <input 
+          v-model="barcodeInput" 
+          @keyup.enter="handleBarcodeScan"
+          ref="barcodeField"
+          placeholder="Klik disini lalu scan..." 
+          class="w-full pl-12 p-3.5 border-2 border-blue-500 rounded-2xl bg-blue-50 outline-none focus:bg-white focus:ring-4 focus:ring-blue-100 transition text-sm font-bold shadow-inner"
+        />
+      </div>
+    </div>
+
+    <div class="relative">
+      <label class="text-[10px] font-black text-gray-400 uppercase mb-1 block ml-2">Cari Barang (Manual)</label>
+      <div class="relative">
+        <i class="bi bi-search absolute left-4 top-3.5 text-slate-400"></i>
+        <input 
+          v-model="search" 
+          placeholder="Ketik nama produk..." 
+          class="w-full pl-12 p-3.5 border-none rounded-2xl bg-gray-100 outline-none focus:bg-white focus:ring-2 focus:ring-blue-400 transition text-sm font-bold shadow-inner"
+        />
+      </div>
+    </div>
+  </div>
+</div>
 
         <div class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/50">
           <div class="space-y-1 mb-4">

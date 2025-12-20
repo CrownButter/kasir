@@ -25,6 +25,10 @@ public class ItemController {
     public List<ItemEntity> list() {
         return service.all();
     }
+    @GetMapping("/kode/{kode}")
+    public ItemEntity getByKode(@PathVariable String kode) {
+        return service.getByKode(kode);
+    }
 
     // Menggunakan MULTIPART_FORM_DATA_VALUE agar bisa menerima File dan JSON sekaligus
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

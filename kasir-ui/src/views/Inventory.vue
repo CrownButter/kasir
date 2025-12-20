@@ -18,6 +18,19 @@
             </router-link>
         </div>
       </div>
+      <div class="flex justify-between items-center mb-6 border-b pb-4">
+  <div class="flex gap-3 items-center">
+    <div class="relative">
+      <i class="bi bi-search absolute left-3 top-2 text-gray-400"></i>
+      <input v-model="searchQuery" type="text" placeholder="Cari Kode / Nama..." 
+        class="pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm w-64"/>
+    </div>
+    <div class="bg-blue-50 ...">Total Item: {{ filteredItems.length }}</div>
+    <router-link to="/inventory/tambah" class="...">Tambah Barang</router-link>
+  </div>
+</div>
+
+<tr v-for="item in filteredItems" :key="item.id" class="...">
 
       <div class="overflow-x-auto rounded border border-gray-200">
           <table class="w-full text-sm text-left">
@@ -88,9 +101,16 @@ import { ref, onMounted } from 'vue';
 import api, { getImageUrl } from '../api';
 
 const items = ref([]);
-
+const searchQuery = ref(""); // TAMBAH INI
 onMounted(() => { loadItems(); });
-
+const filteredItems = computed(() => {
+  if (!searchQuery.value) return items.value;
+  const q = searchQuery.value.toLowerCase();
+  return items.value.filter(i => 
+    i.nama.toLowerCase().includes(q) || 
+    i.kode.toLowerCase().includes(q)
+  );
+});
 const loadItems = async () => {
     try {
         const res = await api.get('/api/items');
