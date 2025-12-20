@@ -20,53 +20,94 @@
           <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
               <h2 class="font-bold text-gray-800 mb-4">Informasi Pelanggan</h2>
               <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <input v-model="form.customerNama" placeholder="Nama Lengkap *" class="p-3 bg-gray-50 border rounded-xl font-bold outline-none" />
-                <input v-model="form.customerTelp" placeholder="Nomor WhatsApp" class="p-3 bg-gray-50 border rounded-xl outline-none" />
-                <input v-model="form.customerAlamat" placeholder="Alamat" class="p-3 bg-gray-50 border rounded-xl outline-none" />
+                <input v-model="form.customerNama" placeholder="Nama Lengkap *" class="p-3 bg-gray-50 border rounded-xl font-bold outline-none focus:ring-2 focus:ring-orange-200" />
+                <input v-model="form.customerTelp" placeholder="Nomor WhatsApp" class="p-3 bg-gray-50 border rounded-xl outline-none focus:ring-2 focus:ring-orange-200" />
+                <input v-model="form.customerAlamat" placeholder="Alamat" class="p-3 bg-gray-50 border rounded-xl outline-none focus:ring-2 focus:ring-orange-200" />
               </div>
           </div>
+          
           <div v-for="(row, index) in rows" :key="index">
-              <div v-if="!row.isChild" class="bg-white rounded-2xl border p-4 mb-4">
-                  <input v-model="row.unitName" placeholder="Nama Unit" class="w-full p-2 border rounded mb-2" />
-                  <button @click="addSolution(index)" class="text-xs text-orange-600 font-bold">+ Detail Biaya</button>
+              <div v-if="!row.isChild" class="bg-white rounded-2xl border p-4 mb-4 shadow-sm">
+                  <div class="flex justify-between items-center mb-4">
+                    <span class="font-bold text-orange-600 text-sm">UNIT #{{ getRowNumber(index) }}</span>
+                    <button @click="removeRow(index)" class="text-red-400 hover:text-red-600"><i class="bi bi-trash"></i></button>
+                  </div>
+                  <input v-model="row.unitName" placeholder="Nama Unit (Contoh: Printer Epson L3110)" class="w-full p-3 bg-gray-50 border rounded-xl mb-3 font-bold" />
+                  <div class="space-y-2">
+                    <div v-for="(subRow, subIndex) in getRelatedRows(index)" :key="subIndex" class="flex gap-2 items-center bg-white p-2 border rounded-lg shadow-sm">
+                       <input v-model="subRow.solusi" placeholder="Tindakan / Sparepart" class="flex-1 p-2 border-none outline-none text-sm" />
+                       <input v-model="subRow.harga" type="number" placeholder="Harga" class="w-28 p-2 border-l text-right font-mono text-sm" />
+                       <button v-if="subRow.isChild" @click="removeRow(index + subIndex)" class="text-red-300"><i class="bi bi-x-circle"></i></button>
+                    </div>
+                  </div>
+                  <button @click="addSolution(index)" class="mt-3 text-[10px] text-orange-600 font-black uppercase tracking-widest">+ Detail Biaya</button>
               </div>
           </div>
-          <button @click="addNewUnit" class="w-full p-4 border-2 border-dashed rounded-xl text-gray-400 font-bold">TAMBAH UNIT</button>
+          <button @click="addNewUnit" class="w-full p-6 border-2 border-dashed rounded-2xl text-gray-400 font-bold hover:bg-orange-50 transition-all uppercase text-xs tracking-widest">+ TAMBAH UNIT BARU</button>
       </div>
     </div>
 
     <div v-else class="flex-1 flex flex-col md:flex-row overflow-hidden relative">
       <div class="w-full md:w-1/3 flex flex-col bg-white border-r shadow-xl z-10 overflow-hidden">
         <div class="bg-black p-4 text-center">
-          <p class="text-green-500 text-[10px] font-mono">Total Tagihan</p>
-          <h1 class="text-3xl font-mono text-green-400 font-bold">{{ formatNumber(grandTotal) }}</h1>
+          <p class="text-green-500 text-[10px] font-mono uppercase mb-1">Total Tagihan</p>
+          <h1 class="text-3xl font-mono text-green-400 font-bold tracking-tighter">{{ formatNumber(grandTotal) }}</h1>
         </div>
 
-        <div class="flex-1 overflow-y-auto p-4">
-          <input v-model="form.customerNama" placeholder="Nama Customer *" class="w-full border-2 p-3 rounded-xl text-sm font-bold mb-4 outline-none" />
-          <div v-for="(row, index) in rows" :key="index" v-show="row.namaBarang" class="flex justify-between items-center p-3 border rounded-xl mb-2">
+        <div class="flex-1 overflow-y-auto p-4 space-y-3">
+          <input v-model="form.customerNama" placeholder="Nama Customer *" class="w-full border-2 p-3 rounded-xl text-sm font-bold mb-4 outline-none focus:border-blue-400" />
+          
+          <div v-for="(row, index) in rows" :key="index" v-show="row.namaBarang" class="flex justify-between items-center p-3 border rounded-xl bg-white shadow-sm">
             <div class="flex-1">
-              <p class="font-bold text-sm">{{ row.namaBarang }}</p>
-              <span class="text-xs text-blue-600">{{ row.qty }} x {{ formatNumber(row.harga) }}</span>
+              <p class="font-bold text-sm text-gray-800">{{ row.namaBarang }}</p>
+              <div class="flex items-center gap-2 mt-1">
+                <span class="bg-blue-100 text-blue-700 text-[10px] px-2 py-0.5 rounded font-bold">{{ row.qty }}x</span>
+                <span class="text-[10px] text-gray-400 font-mono">@ {{ formatNumber(row.harga) }}</span>
+              </div>
             </div>
-            <button @click="removeRow(index)" class="text-red-300"><i class="bi bi-trash"></i></button>
+            <button @click="removeRow(index)" class="text-red-300 hover:text-red-500 transition"><i class="bi bi-trash-fill"></i></button>
+          </div>
+          
+          <div v-if="cartCount === 0" class="flex flex-col items-center justify-center h-40 text-gray-300">
+            <i class="bi bi-cart-x text-4xl mb-2"></i>
+            <p class="text-xs font-bold uppercase tracking-widest">Keranjang Kosong</p>
           </div>
         </div>
 
-        <div class="p-4 bg-gray-50 border-t space-y-3">
-          <div class="grid grid-cols-2 gap-2">
-            <input v-model="form.dp" type="number" placeholder="DP" class="p-2 border rounded-lg text-sm" />
-            <input v-model="form.bayar" type="number" placeholder="Bayar" class="p-2 border-2 border-blue-400 rounded-lg text-sm bg-blue-50" />
+        <div class="p-4 bg-gray-50 border-t space-y-3 shadow-inner">
+          <div class="grid grid-cols-2 gap-3">
+            <div class="space-y-1">
+              <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Uang Muka (DP)</label>
+              <input v-model="form.dp" type="number" class="w-full p-2.5 border rounded-xl font-mono font-bold text-sm focus:ring-2 focus:ring-gray-200 outline-none" placeholder="0" />
+            </div>
+            <div class="space-y-1">
+              <label class="text-[9px] font-black text-blue-600 uppercase tracking-widest">Bayar (Cash)</label>
+              <input v-model="form.bayar" type="number" class="w-full p-2.5 border-2 border-blue-400 rounded-xl font-mono font-bold bg-blue-50 text-sm focus:ring-2 focus:ring-blue-200 outline-none" placeholder="0" />
+            </div>
+          </div>
+
+          <div class="flex justify-between items-center p-3 bg-white rounded-2xl border-2 border-dashed">
+            <div>
+              <p class="text-[9px] font-black text-gray-400 uppercase leading-none mb-1">Sisa Tagihan</p>
+              <p class="text-xl font-black text-red-600 font-mono leading-none">{{ formatNumber(sisaBayar) }}</p>
+            </div>
+            <div class="text-right">
+              <p class="text-[9px] font-black text-gray-400 uppercase leading-none mb-1">Kembalian</p>
+              <p class="text-xl font-black text-green-600 font-mono leading-none">{{ formatNumber(kembalian) }}</p>
+            </div>
           </div>
         </div>
       </div>
 
       <div class="flex-1 bg-gray-200 flex flex-col overflow-hidden">
-        <div class="p-4 bg-white shadow-sm">
-          <input v-model="search" placeholder="Cari barang..." class="w-full p-3 border rounded-full bg-gray-50 outline-none" />
+        <div class="p-4 bg-white shadow-sm flex items-center gap-3">
+          <div class="relative flex-1">
+            <i class="bi bi-search absolute left-4 top-3 text-gray-400"></i>
+            <input v-model="search" placeholder="Cari nama barang..." class="w-full pl-11 p-3 border rounded-full bg-gray-50 outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 transition" />
+          </div>
         </div>
         <div class="flex-1 overflow-y-auto p-4">
-          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             <div v-for="item in filteredItems" :key="item.id" 
                  @click="onProductClick(item)" 
                  :class="{'shake-anim': item.isShaking}"
@@ -81,11 +122,11 @@
               </span>
 
               <div class="h-24 bg-gray-50 rounded-xl mb-2 flex items-center justify-center overflow-hidden">
-                <img v-if="item.imageUrl" :src="getImageUrl(item.imageUrl)" class="h-full object-cover group-hover:scale-110 transition" />
+                <img v-if="item.imageUrl" :src="getImageUrl(item.imageUrl)" class="h-full object-cover group-hover:scale-110 transition duration-300" />
                 <i v-else class="bi bi-box text-2xl text-gray-200"></i>
               </div>
               <h4 class="text-[10px] font-bold text-gray-700 uppercase line-clamp-2 h-8">{{ item.nama }}</h4>
-              <p class="text-blue-700 font-black mt-1 text-sm">{{ formatNumber(item.harga) }}</p>
+              <p class="text-blue-700 font-black mt-1 text-sm font-mono">{{ formatNumber(item.harga) }}</p>
 
               <div v-if="item.stok <= 0" class="absolute inset-0 bg-white/60 flex items-center justify-center backdrop-blur-[1px]">
                  <span class="bg-red-600 text-white text-[10px] px-3 py-1 rounded-full font-black uppercase rotate-12 shadow-lg">Habis</span>
@@ -96,11 +137,12 @@
       </div>
     </div>
 
-    <div class="p-4 bg-white border-t flex justify-center items-center z-30">
+    <div class="p-4 md:p-6 bg-white border-t flex justify-center items-center flex-shrink-0 z-30">
       <button @click="saveNota" 
-              :class="form.tipe === 'SERVICE' ? 'bg-orange-600' : 'bg-blue-600'" 
-              class="w-full md:w-1/2 py-4 text-white rounded-2xl font-black shadow-lg transition active:scale-95 uppercase tracking-widest text-sm">
-        Simpan Transaksi
+              :class="form.tipe === 'SERVICE' ? 'bg-orange-600 hover:bg-orange-700' : 'bg-blue-600 hover:bg-blue-700'" 
+              class="w-full md:w-1/2 py-4 text-white rounded-3xl font-black shadow-lg transition active:scale-95 uppercase tracking-widest text-sm flex items-center justify-center gap-3">
+        <i class="bi bi-cloud-arrow-up-fill text-xl"></i>
+        Simpan Transaksi Sekarang
       </button>
     </div>
   </div>
@@ -116,7 +158,7 @@ const masterItems = ref([]);
 const search = ref("");
 const kasirNama = ref(localStorage.getItem('username') || 'Kasir');
 
-// State untuk Toast Notification
+// Toast Logic
 const toast = reactive({ show: false, message: "" });
 const triggerToast = (msg) => {
   toast.message = msg;
@@ -130,15 +172,23 @@ const rows = ref([{ unitName: "", kerusakan: "", solusi: "", namaBarang: "", cat
 onMounted(async () => {
   try {
     const res = await api.get('/api/items');
-    // Tambahkan properti isShaking untuk animasi per item
     masterItems.value = res.data.map(item => ({ ...item, isShaking: false }));
   } catch(e) { console.error("Gagal load item"); }
 });
 
 const grandTotal = computed(() => rows.value.reduce((sum, r) => sum + (r.qty * r.harga), 0));
 const cartCount = computed(() => rows.value.filter(r => r.itemId || r.namaBarang).length);
-const sisaBayar = computed(() => Math.max(0, grandTotal.value - (Number(form.value.dp) + Number(form.value.bayar))));
-const kembalian = computed(() => Math.max(0, (Number(form.value.dp) + Number(form.value.bayar)) - grandTotal.value));
+
+// --- HITUNGAN REALTIME (SISA & KEMBALIAN) ---
+const sisaBayar = computed(() => {
+  const sisa = grandTotal.value - (Number(form.value.dp) + Number(form.value.bayar));
+  return sisa > 0 ? sisa : 0;
+});
+
+const kembalian = computed(() => {
+  const totalDiterima = Number(form.value.dp) + Number(form.value.bayar);
+  return totalDiterima > grandTotal.value ? totalDiterima - grandTotal.value : 0;
+});
 
 const filteredItems = computed(() => {
   const s = search.value.toLowerCase();
@@ -147,9 +197,7 @@ const filteredItems = computed(() => {
 
 const formatNumber = (n) => new Intl.NumberFormat('id-ID').format(n || 0);
 
-// --- LOGIKA KLIK PRODUK DENGAN ANIMASI (TANPA ALERT) ---
 const onProductClick = (item) => {
-  // 1. Jika Stok Habis (0)
   if(item.stok <= 0) {
     item.isShaking = true;
     triggerToast(`Maaf, stok ${item.nama} sudah habis!`);
@@ -158,12 +206,10 @@ const onProductClick = (item) => {
   }
 
   const existing = rows.value.find(r => r.itemId === item.id);
-
   if(existing) {
-    // 2. Jika Melebihi Stok Tersedia
     if(existing.qty + 1 > item.stok) {
       item.isShaking = true;
-      triggerToast(`Stok terbatas! Hanya tersedia ${item.stok} unit.`);
+      triggerToast(`Stok hanya tersedia ${item.stok} unit.`);
       setTimeout(() => { item.isShaking = false; }, 500);
       return;
     }
@@ -181,17 +227,18 @@ const switchMode = (mode) => {
 };
 
 const addNewUnit = () => rows.value.push({ unitName: "", kerusakan: "", solusi: "", namaBarang: "", catatan: "", qty: 1, harga: 0, itemId: null, isChild: false });
-const addSolution = (index) => rows.value.splice(index + 1, 0, { unitName: "", kerusakan: "", solusi: "Biaya Baru", namaBarang: "", catatan: "", qty: 1, harga: 0, itemId: null, isChild: true });
+const addSolution = (index) => rows.value.splice(index + 1, 0, { unitName: "", kerusakan: "", solusi: "", namaBarang: "", catatan: "", qty: 1, harga: 0, itemId: null, isChild: true });
 const removeRow = (index) => { rows.value.splice(index, 1); if(rows.value.length === 0) addNewUnit(); };
 const getRelatedRows = (index) => rows.value.filter((r, i) => i === index || (i > index && r.isChild && !rows.value.slice(index + 1, i).some(x => !x.isChild)));
 const getRowNumber = (index) => rows.value.slice(0, index + 1).filter(r => !r.isChild).length;
 
 const saveNota = async () => {
   if (!form.value.customerNama) { triggerToast("Nama Pelanggan wajib diisi!"); return; }
-  if (cartCount.value === 0) { triggerToast("Pilih minimal satu barang!"); return; }
+  if (cartCount.value === 0) { triggerToast("Keranjang belanja kosong!"); return; }
   
-  const totalInput = Number(form.value.dp) + Number(form.value.bayar);
-  const isLunas = totalInput >= grandTotal.value;
+  const totalDiterima = Number(form.value.dp) + Number(form.value.bayar);
+  const isLunas = totalDiterima >= grandTotal.value;
+  
   const payload = {
     ...form.value,
     kasirNama: kasirNama.value,
@@ -213,19 +260,12 @@ const saveNota = async () => {
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
 
-/* ANIMASI TOAST (FADE & SLIDE) */
+/* Toast Animation */
 .toast-enter-active, .toast-leave-active { transition: all 0.4s ease; }
 .toast-enter-from { opacity: 0; transform: translate(-50%, -20px); }
 .toast-leave-to { opacity: 0; transform: translate(-50%, -20px); }
 
-/* ANIMASI PULSE (STOK RENDAH) */
-.animate-pulse { animation: pulse 1.5s infinite; }
-@keyframes pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.7; transform: scale(1.05); }
-}
-
-/* ANIMASI GETAR (SHAKE) SAAT STOK MELEBIHI BATAS */
+/* Shake Animation */
 .shake-anim { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; border-color: #ef4444 !important; }
 @keyframes shake {
   10%, 90% { transform: translate3d(-1px, 0, 0); }
@@ -234,6 +274,12 @@ const saveNota = async () => {
   40%, 60% { transform: translate3d(4px, 0, 0); }
 }
 
-/* Hide Spinner Number */
+/* Pulse for low stock */
+.animate-pulse { animation: pulse 1.5s infinite; }
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.05); }
+}
+
 input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 </style>
