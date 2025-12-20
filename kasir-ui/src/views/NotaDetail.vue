@@ -3,7 +3,7 @@
     <div v-if="nota" class="bg-white shadow-2xl rounded-3xl overflow-hidden border">
       
       <div class="bg-slate-900 p-8 text-white flex flex-col md:flex-row justify-between items-center gap-6 relative">
-        <div class="text-center md:text-left">
+        <div class="text-center md:text-left z-10">
           <p class="text-blue-400 text-xs font-black uppercase tracking-widest mb-1 italic">
             {{ nota.tipe === 'SERVICE' ? 'Service Order' : 'Sales Invoice' }}
           </p>
@@ -12,7 +12,7 @@
         </div>
 
         <div v-if="nota.status === 'LUNAS' || nota.sisa <= 0" 
-             class="absolute right-1/2 md:right-64 top-1/2 -translate-y-1/2 border-8 border-green-500/30 text-green-500/40 px-8 py-2 rounded-2xl font-black text-6xl rotate-[-15deg] uppercase tracking-[0.5em] pointer-events-none select-none">
+             class="absolute right-10 md:right-64 top-1/2 -translate-y-1/2 border-8 border-green-500/30 text-green-500/30 px-8 py-2 rounded-2xl font-black text-7xl rotate-[-15deg] uppercase tracking-[0.5em] pointer-events-none select-none z-0">
           Lunas
         </div>
 
@@ -21,7 +21,7 @@
             <i class="bi bi-printer-fill"></i> Cetak / PDF
           </button>
           <button @click="$router.push('/riwayat')" class="bg-slate-700 hover:bg-slate-600 px-6 py-3 rounded-2xl font-bold transition text-sm">
-            Kembali
+            Tutup
           </button>
         </div>
       </div>
@@ -45,9 +45,9 @@
           <table class="w-full text-left">
             <thead>
               <tr class="text-[10px] font-black text-gray-400 uppercase border-b-2 border-slate-100">
-                <th class="pb-4">Item / Deskripsi</th>
+                <th class="pb-4">Deskripsi Item / Jasa</th>
                 <th class="pb-4 text-center">Qty</th>
-                <th class="pb-4 text-right">Harga Satuan</th>
+                <th class="pb-4 text-right">Harga</th>
                 <th class="pb-4 text-right">Subtotal</th>
               </tr>
             </thead>
@@ -69,16 +69,17 @@
           <div class="w-full md:w-80 space-y-3">
             
             <div class="flex justify-between items-center text-slate-400 font-bold text-sm">
-              <span>TOTAL TAGIHAN</span>
+              <span class="uppercase">Total Tagihan</span>
               <span class="text-slate-800 font-black text-lg">{{ formatRupiah(nota.total) }}</span>
             </div>
             
             <div v-if="nota.dp > 0" class="flex justify-between items-center text-orange-600 font-bold text-sm">
-              <span>UANG MUKA (DP)</span>
+              <span class="uppercase">Uang Muka (DP)</span>
               <span class="font-black">- {{ formatRupiah(nota.dp) }}</span>
             </div>
 
-            <div v-if="nota.sisa > 0" class="flex justify-between items-center p-4 bg-red-600 text-white rounded-2xl shadow-lg shadow-red-100 mt-4">
+            <div v-if="nota.status !== 'LUNAS' && nota.sisa > 0" 
+                 class="flex justify-between items-center p-4 bg-red-600 text-white rounded-2xl shadow-lg shadow-red-100 mt-4 transition-all animate-pulse">
               <div class="flex flex-col">
                 <span class="text-[9px] font-black uppercase opacity-80">Sisa Tagihan</span>
                 <span class="text-xl font-black font-mono">{{ formatRupiah(nota.sisa) }}</span>
@@ -89,7 +90,7 @@
             <div v-else class="flex justify-between items-center p-4 bg-green-600 text-white rounded-2xl shadow-lg shadow-green-100 mt-4">
               <div class="flex flex-col">
                 <span class="text-[9px] font-black uppercase opacity-80">Status Pembayaran</span>
-                <span class="text-xl font-black font-mono">LUNAS</span>
+                <span class="text-xl font-black font-mono uppercase">Sudah Lunas</span>
               </div>
               <i class="bi bi-check-all text-3xl"></i>
             </div>
@@ -129,7 +130,6 @@ const printPdf = async () => {
     document.body.appendChild(link);
     link.click();
     link.remove();
-    window.URL.revokeObjectURL(url);
   } catch (error) {
     alert("Gagal mengunduh PDF.");
   }
@@ -160,6 +160,6 @@ onMounted(fetchData);
 
 <style scoped>
 .font-mono {
-  font-family: 'Courier New', Courier, monospace;
+  font-family: 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', monospace;
 }
 </style>
