@@ -9,37 +9,33 @@ import UserProfile from './views/UserProfile.vue';
 import EditNota from './views/EditNota.vue';
 import ItemForm from './views/ItemForm.vue';
 import NotaDetail from './views/NotaDetail.vue';
-import LaporanPenjualan from './views/LaporanPenjualan.vue';
+import LaporanPenjualan from './views/LaporanPenjualan.vue'; // Pastikan file sudah dibuat di Langkah 1
+
 const routes = [
     { path: '/login', component: Login, meta: { guest: true } },
-    
     { path: '/', component: NotaBaru, meta: { requiresAuth: true } },
     { path: '/riwayat', component: KasirHistory, meta: { requiresAuth: true } }, 
     { path: '/print/:id', component: NotaPrint, meta: { requiresAuth: true } },
-    
-    // Rute Inventory
     { path: '/inventory', component: Inventory, meta: { requiresAuth: true } },
     { path: '/inventory/tambah', component: ItemForm, meta: { requiresAuth: true } },
     { path: '/inventory/edit/:id', component: ItemForm, meta: { requiresAuth: true } },
-    
     { path: '/profile', component: UserProfile, meta: { requiresAuth: true } },
     { path: '/edit/:id', component: EditNota, meta: { requiresAuth: true } },
     { path: '/nota/:id', component: NotaDetail, meta: { requiresAuth: true } },
-    {
-    path: '/laporan',
-    name: 'LaporanPenjualan',
-    component: LaporanPenjualan,
-    meta: { requiresAuth: true, role: 'ADMIN' } // Hanya untuk Admin
-  },
+    
+    // ROUTE KHUSUS LAPORAN
+    { 
+      path: '/laporan', 
+      name: 'LaporanPenjualan', 
+      component: LaporanPenjualan, 
+      meta: { requiresAuth: true, role: 'ADMIN' } 
+    },
 
-    // HALAMAN KHUSUS ADMIN
+    // HALAMAN ADMIN (Hapus tab laporan dari sini)
     { 
         path: '/admin', 
         component: AdminDashboard, 
-        meta: { 
-            requiresAuth: true,
-            role: 'ADMIN'
-        } 
+        meta: { requiresAuth: true, role: 'ADMIN' } 
     },
 ];
 
@@ -48,29 +44,17 @@ const router = createRouter({
     routes
 });
 
-// --- PENJAGA PINTU (GUARD) ---
 router.beforeEach((to, from, next) => {
     const token = localStorage.getItem('accessToken');
     const userRole = localStorage.getItem('role'); 
 
-    // 1. Cek apakah user mau masuk halaman Login (Guest) tapi sudah punya Token?
-    if (to.meta.guest && token) {
-        return next('/'); 
-    }
+    if (to.meta.guest && token) return next('/'); 
+    if (to.meta.requiresAuth && !token) return next('/login');
 
-    // 2. Cek apakah halaman butuh login (requiresAuth) tapi tidak punya Token?
-    if (to.meta.requiresAuth && !token) {
-        return next('/login');
+    if (to.meta.role === 'ADMIN' && userRole !== 'ADMIN') {
+        alert("AKSES DITOLAK: Khusus Admin!");
+        return next('/');
     }
-
-    // 3. Cek Hak Akses Admin
-    if (to.meta.role === 'ADMIN') {
-        if (userRole !== 'ADMIN') {
-            alert("AKSES DITOLAK: Halaman ini khusus Admin!");
-            return next('/');
-        }
-    }
-
     next();
 });
 
