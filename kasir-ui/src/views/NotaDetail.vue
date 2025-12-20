@@ -1,140 +1,128 @@
 <template>
-  <div class="container mx-auto p-4 md:p-6 max-w-4xl" v-if="nota">
-    <div class="flex justify-between items-center mb-6">
-      <button @click="$router.push('/')" class="text-gray-600 flex items-center gap-2 font-bold hover:text-black">
-        <i class="bi bi-arrow-left"></i> Kembali ke POS
-      </button>
-      <div class="flex gap-3">
-        <button @click="printPdf" class="bg-gray-800 text-white px-4 py-2 rounded shadow hover:bg-black font-bold flex items-center gap-2">
-          <i class="bi bi-printer-fill"></i> Cetak PDF
-        </button>
-        <button @click="$router.push('/edit/' + nota.id)" class="bg-yellow-500 text-white px-4 py-2 rounded shadow hover:bg-yellow-600 font-bold flex items-center gap-2">
-          <i class="bi bi-pencil-square"></i> Edit Nota
-        </button>
-      </div>
-    </div>
-
-    <div class="bg-white rounded-xl shadow-lg overflow-hidden border">
-      <div class="p-6 border-b bg-gray-50 flex justify-between items-center">
-        <div>
-          <h2 class="text-2xl font-bold text-gray-800">Detail Nota</h2>
-          <p class="font-mono text-blue-600 font-bold text-lg">{{ nota.kodeNota }}</p>
+  <div class="container mx-auto p-4 md:p-8 max-w-4xl min-h-screen pb-20">
+    <div v-if="nota" class="bg-white shadow-2xl rounded-3xl overflow-hidden border">
+      
+      <div class="bg-slate-900 p-8 text-white flex flex-col md:flex-row justify-between items-center gap-6 relative">
+        <div class="text-center md:text-left">
+          <p class="text-blue-400 text-xs font-black uppercase tracking-widest mb-1">Invoice / Nomor Seri</p>
+          <h1 class="text-4xl font-mono font-black italic">{{ nota.kodeNota || nota.nomorSeri }}</h1>
+          <p class="mt-2 text-slate-400 font-bold tracking-widest">{{ formatDate(nota.tanggal) }}</p>
         </div>
-        <div :class="getStatusColor(nota.status)" class="px-4 py-2 rounded-full font-black uppercase text-sm border shadow-sm">
-          {{ nota.status }}
+
+        <div v-if="nota.sisa <= 0" class="absolute right-10 top-1/2 -translate-y-1/2 border-4 border-green-500 text-green-500 px-6 py-2 rounded-xl font-black text-3xl rotate-12 opacity-50 uppercase tracking-[0.3em] pointer-events-none">
+          Lunas
+        </div>
+
+        <div class="flex gap-3">
+          <button @click="printPdf" class="bg-white/10 hover:bg-white/20 px-6 py-3 rounded-2xl font-bold flex items-center gap-2 transition border border-white/10">
+            <i class="bi bi-printer-fill"></i> Download PDF
+          </button>
+          <button @click="$router.push('/riwayat')" class="bg-red-500 hover:bg-red-600 px-6 py-3 rounded-2xl font-bold transition">
+            Tutup
+          </button>
         </div>
       </div>
 
       <div class="p-8">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-          <div>
-            <h4 class="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Pelanggan</h4>
-            <p class="text-xl font-bold text-gray-800">{{ nota.customerNama }}</p>
-            <p class="text-gray-600">{{ nota.customerTelp || '-' }}</p>
-            <p class="text-gray-600 italic mt-1">{{ nota.customerAlamat || '-' }}</p>
-          </div>
-          <div class="md:text-right">
-            <h4 class="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Informasi Nota</h4>
-            <p class="text-gray-800 font-bold">Tanggal: {{ formatDate(nota.tanggal) }}</p>
-            <p class="text-gray-800">Kasir: {{ nota.kasirNama }}</p>
-            <p class="text-blue-700 font-bold mt-2" v-if="nota.barangCustomer">Unit: {{ nota.barangCustomer }}</p>
-          </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10 pb-8 border-b">
+           <div>
+              <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Data Pelanggan</label>
+              <h3 class="text-2xl font-black text-slate-800 uppercase">{{ nota.customerNama }}</h3>
+              <p class="text-slate-500 font-bold mt-1">{{ nota.customerTelp || '-' }}</p>
+              <p class="text-slate-500 text-sm mt-1 italic">{{ nota.customerAlamat || '-' }}</p>
+           </div>
+           <div class="md:text-right">
+              <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Status Transaksi</label>
+              <span :class="getStatusColor(nota.status)" class="text-lg font-black px-6 py-2 rounded-2xl border uppercase shadow-sm inline-block">
+                {{ nota.status }}
+              </span>
+           </div>
         </div>
 
-        <div class="border rounded-xl overflow-hidden mb-8">
-          <table class="w-full text-sm text-left">
-            <thead class="bg-gray-800 text-white uppercase text-xs">
-              <tr>
-                <th class="p-4">Barang/Jasa</th>
-                <th class="p-4 text-center">Qty</th>
-                <th class="p-4 text-right">Harga</th>
-                <th class="p-4 text-right">Subtotal</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y">
-              <tr v-for="(item, i) in nota.snapshots" :key="i" class="hover:bg-gray-50">
-                <td class="p-4">
-                  <div class="font-bold text-gray-800">{{ item.namaBarang }}</div>
-                  <div class="text-xs text-gray-500 italic" v-if="item.catatan">{{ item.catatan }}</div>
-                </td>
-                <td class="p-4 text-center">{{ item.jumlah }}</td>
-                <td class="p-4 text-right">{{ formatRupiah(item.hargaSatuan) }}</td>
-                <td class="p-4 text-right font-bold">{{ formatRupiah(item.totalHarga) }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <table class="w-full text-left mb-10">
+          <thead>
+            <tr class="text-[10px] font-black text-gray-400 uppercase border-b-2">
+              <th class="pb-4">Deskripsi Produk / Jasa</th>
+              <th class="pb-4 text-center">Qty</th>
+              <th class="pb-4 text-right">Harga Satuan</th>
+              <th class="pb-4 text-right">Subtotal</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y">
+            <tr v-for="item in nota.snapshots" :key="item.id" class="group">
+              <td class="py-5">
+                <p class="font-black text-slate-800 uppercase">{{ item.namaBarang }}</p>
+                <p v-if="item.catatan" class="text-xs text-slate-400 mt-1 italic">{{ item.catatan }}</p>
+              </td>
+              <td class="py-5 text-center font-bold text-slate-600">{{ item.jumlah }}</td>
+              <td class="py-5 text-right font-mono text-slate-500">{{ formatRupiah(item.hargaSatuan) }}</td>
+              <td class="py-5 text-right font-mono font-black text-slate-800">{{ formatRupiah(item.totalHarga) }}</td>
+            </tr>
+          </tbody>
+        </table>
 
-        <div class="flex justify-end">
-          <div class="w-full md:w-1/2 space-y-3">
-            <div v-if="nota.sisa > 0" class="flex justify-between text-red-600 font-bold">
-              <span>Sisa Bayar:</span>
-              <span>{{ formatRupiah(nota.sisa) }}</span>
-            </div>
+        <div class="flex flex-col items-end gap-3">
+          <div class="flex justify-between w-full md:w-80 border-t pt-4">
+            <span class="font-bold text-slate-400 uppercase text-xs">Total Tagihan</span>
+            <span class="font-mono font-black text-xl text-slate-800">{{ formatRupiah(nota.total) }}</span>
+          </div>
+          
+          <div v-if="nota.dp > 0" class="flex justify-between w-full md:w-80 text-orange-600">
+            <span class="font-bold uppercase text-xs">Uang Muka (DP)</span>
+            <span class="font-mono font-black">- {{ formatRupiah(nota.dp) }}</span>
+          </div>
 
-            <div v-if="nota.dp > 0" class="flex justify-between text-gray-600 font-medium">
-              <span>Uang Muka (DP):</span>
-              <span>{{ formatRupiah(nota.dp) }}</span>
-            </div>
+          <div v-if="nota.sisa > 0" class="flex justify-between w-full md:w-80 p-4 bg-red-50 rounded-2xl border border-red-100 text-red-600 mt-2">
+            <span class="font-black uppercase text-xs">Sisa Tagihan</span>
+            <span class="font-mono font-black text-xl">{{ formatRupiah(nota.sisa) }}</span>
+          </div>
 
-            <div class="flex justify-between border-t-2 pt-3 text-2xl font-black text-blue-800">
-              <span>Total Tagihan:</span>
-              <span>{{ formatRupiah(nota.total) }}</span>
-            </div>
+          <div v-else class="flex justify-between w-full md:w-80 p-4 bg-green-50 rounded-2xl border border-green-100 text-green-600 mt-2">
+            <span class="font-black uppercase text-xs">Sisa Tagihan</span>
+            <span class="font-black uppercase text-sm italic">SUDAH LUNAS</span>
           </div>
         </div>
       </div>
     </div>
-  </div>
-  
-  <div v-else class="flex flex-col items-center justify-center h-screen text-gray-400">
-    <i class="bi bi-arrow-clockwise animate-spin text-5xl mb-4"></i>
-    <p class="font-bold uppercase tracking-widest">Memuat Detail Nota...</p>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 import api from '../api';
 
 const route = useRoute();
-const router = useRouter();
 const nota = ref(null);
 
-onMounted(async () => {
+const fetchData = async () => {
   try {
     const res = await api.get(`/api/nota/${route.params.id}`);
     nota.value = res.data;
-  } catch (e) {
-    alert("Nota tidak ditemukan!");
-    router.push('/riwayat');
-  }
-});
+  } catch (e) { alert("Gagal memuat detail nota"); }
+};
 
 const printPdf = async () => {
   try {
     const response = await api.get(`/api/nota/${nota.value.id}/pdf`, { responseType: 'blob' });
     const url = window.URL.createObjectURL(new Blob([response.data]));
     const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `Nota-${nota.value.kodeNota}.pdf`);
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-  } catch (error) {
-    alert("Gagal mendownload PDF.");
+    link.href = url; link.setAttribute('download', `Nota-${nota.value.kodeNota}.pdf`);
+    document.body.appendChild(link); link.click(); link.remove();
+  } catch (error) { alert("Gagal download PDF."); }
+};
+
+const getStatusColor = (s) => {
+  switch(s) {
+    case 'PROSES': return 'bg-yellow-50 text-yellow-600 border-yellow-200';
+    case 'SELESAI': return 'bg-green-50 text-green-600 border-green-200';
+    case 'LUNAS': return 'bg-blue-50 text-blue-600 border-blue-200';
+    default: return 'bg-gray-50 text-gray-400';
   }
 };
 
-const formatRupiah = (v) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(v || 0);
-const formatDate = (d) => new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-const getStatusColor = (status) => {
-  switch(status) {
-    case 'PROSES': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-    case 'SELESAI': return 'bg-green-100 text-green-800 border-green-200';
-    case 'LUNAS': return 'bg-blue-100 text-blue-800 border-blue-200';
-    default: return 'bg-gray-100 border-gray-200';
-  }
-};
+const formatDate = (d) => new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+const formatRupiah = (val) => new Intl.NumberFormat('id-ID').format(val || 0);
+
+onMounted(fetchData);
 </script>
