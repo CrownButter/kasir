@@ -3,6 +3,7 @@ package com.dwincomputer.kasir.auth.dto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
+import jakarta.validation.constraints.Pattern;
 
 @Data
 public class RegisterRequest {
@@ -11,7 +12,9 @@ public class RegisterRequest {
     private String username;
 
     @NotBlank(message = "Password tidak boleh kosong")
-    @Size(min = 6, message = "Password minimal 6 karakter")
+    @Pattern(regexp = "^(?=.*[0-9])(?=.*[a-z]).*$",
+            message = "Password harus mengandung kombinasi huruf dan angka")
+    @Size(min = 8, message = "Password minimal 6 karakter")
     private String password;
 
     @NotBlank(message = "Role wajib diisi")

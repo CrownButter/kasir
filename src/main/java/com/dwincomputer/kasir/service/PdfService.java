@@ -18,7 +18,6 @@ import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.springframework.beans.factory.annotation.Value; // Tambahkan ini
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.awt.Color;
 import java.io.ByteArrayOutputStream;
 import java.io.File; // Tambahkan ini

@@ -36,12 +36,14 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue';
+import api from '../api';
 
 const props = defineProps(['modelValue', 'items']);
 const emit = defineEmits(['update:modelValue', 'select']);
 
 const searchQuery = ref(props.modelValue || "");
 const showDropdown = ref(false);
+let timeoutId = null;
 
 watch(() => props.modelValue, (val) => {
     searchQuery.value = val;
@@ -75,6 +77,15 @@ const selectItem = (item) => {
 const delayHide = () => {
     setTimeout(() => { showDropdown.value = false; }, 200);
 };
+const showOptions = () => {
+  if (timeoutId) clearTimeout(timeoutId); // Batalkan timer jika user kembali fokus
+  showDropdown.value = true;
+};
+onUnmounted(() => {
+  if (timeoutId) {
+    clearTimeout(timeoutId);
+  }
+});
 
 const formatNumber = (n) => new Intl.NumberFormat('id-ID').format(n);
 </script>

@@ -4,12 +4,14 @@ import com.dwincomputer.kasir.auth.dto.RegisterRequest;
 import com.dwincomputer.kasir.auth.dto.UserResponse;
 import com.dwincomputer.kasir.auth.entity.User;
 import com.dwincomputer.kasir.auth.repository.UserRepository;
+import com.dwincomputer.kasir.auth.service.AuditService; // Import service audit
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -17,32 +19,30 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/admin/users")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')") // Hanya Admin yang bisa akses file ini
+@PreAuthorize("hasRole('ADMIN')") // Hanya Admin yang bisa akses 
 public class AdminController {
 
-    private final UserRepository userRepo;
-    private final PasswordEncoder encoder;
+    private final UserRepository userRepo; //
+    private final PasswordEncoder encoder; // 
+    private final AuditService auditService; // Tambahkan untuk logging
 
-    // 1. LIST USERS (AMAN - Password disembunyikan)
+    // 1. LIST USERS
     @GetMapping
     public ResponseEntity<List<UserResponse>> listUsers() {
-        List<User> users = userRepo.findAll();
-
-        // Convert Entity ke DTO agar password tidak bocor ke frontend
+        List<User> users = userRepo.findAll(); 
         List<UserResponse> response = users.stream()
                 .map(user -> UserResponse.builder()
                         .id(user.getId())
                         .username(user.getUsername())
                         .role(user.getRole())
-                        .build())
+                        .build()) 
                 .collect(Collectors.toList());
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(response); 
     }
 
-    // 2. TAMBAH USER BARU (Bisa pilih Role)
+    // 2. TAMBAH USER BARU
     @PostMapping
-    public ResponseEntity<?> addUser(@RequestBody RegisterRequest req) {
+    public ResponseEntity<?> addUser(@Valid @RequestBody RegisterRequest req) {
         if (userRepo.findByUsername(req.getUsername()).isPresent()) {
             return ResponseEntity.badRequest().body("Username sudah digunakan!");
         }
@@ -50,46 +50,42 @@ public class AdminController {
         User user = User.builder()
                 .username(req.getUsername())
                 .password(encoder.encode(req.getPassword()))
-                // Jika role tidak dikirim, default jadi KASIR
                 .role(req.getRole() == null || req.getRole().isEmpty() ? "KASIR" : req.getRole().toUpperCase())
-                .build();
-
+                .build(); 
         userRepo.save(user);
-        return ResponseEntity.ok("User berhasil ditambahkan");
+        auditService.log("CREATE_USER", "Admin menambah user baru: " + user.getUsername());
+        return ResponseEntity.ok("User berhasil ditambahkan"); 
     }
 
-    // 3. UPDATE USER (Ganti Password / Username)
+    // 3. UPDATE USER
     @PutMapping("/{id}")
     public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody RegisterRequest req) {
         User user = userRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("User tidak ditemukan"));
 
-        // Update Username (Cek duplikasi jika username berubah)
         if (req.getUsername() != null && !req.getUsername().isEmpty()) {
             if (!user.getUsername().equals(req.getUsername()) &&
                     userRepo.findByUsername(req.getUsername()).isPresent()) {
-                return ResponseEntity.badRequest().body("Username sudah dipakai user lain!");
+                return ResponseEntity.badRequest().body("Username sudah dipakai user lain!"); 
             }
-            user.setUsername(req.getUsername());
+            user.setUsername(req.getUsername()); 
         }
 
-        // Update Password (Hanya jika diisi)
         if (req.getPassword() != null && !req.getPassword().isEmpty()) {
             user.setPassword(encoder.encode(req.getPassword()));
         }
 
-        // Update Role (Opsional)
         if (req.getRole() != null && !req.getRole().isEmpty()) {
-            // Cegah Admin menurunkan pangkat dirinya sendiri jadi Kasir (Bahaya)
             String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
             if (user.getUsername().equals(currentUsername) && !req.getRole().equals("ADMIN")) {
                 return ResponseEntity.badRequest().body("Anda tidak bisa mengubah role Anda sendiri!");
             }
-            user.setRole(req.getRole());
+            user.setRole(req.getRole()); 
         }
 
-        userRepo.save(user);
-        return ResponseEntity.ok("User berhasil diupdate");
+        userRepo.save(user); 
+        auditService.log("UPDATE_USER", "Admin memperbarui user: " + user.getUsername());
+        return ResponseEntity.ok("User berhasil diupdate"); 
     }
 
     // 4. HAPUS USER
@@ -98,18 +94,18 @@ public class AdminController {
         User user = userRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("User tidak ditemukan"));
 
-        // Proteksi 1: Tidak boleh hapus ADMIN UTAMA (misal ID 1)
         if (user.getId() == 1L) {
             return ResponseEntity.badRequest().body("Tidak bisa menghapus SUPER ADMIN!");
         }
 
-        // Proteksi 2: Tidak boleh menghapus DIRI SENDIRI yang sedang login
         String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
         if (user.getUsername().equals(currentUsername)) {
-            return ResponseEntity.badRequest().body("Anda tidak bisa menghapus akun sendiri saat sedang login!");
+            return ResponseEntity.badRequest().body("Anda tidak bisa menghapus akun sendiri!");
         }
 
-        userRepo.delete(user);
-        return ResponseEntity.ok("User berhasil dihapus");
+        String deletedUser = user.getUsername();
+        userRepo.delete(user); 
+        auditService.log("DELETE_USER", "Admin menghapus user: " + deletedUser);
+        return ResponseEntity.ok("User berhasil dihapus"); 
     }
 }
