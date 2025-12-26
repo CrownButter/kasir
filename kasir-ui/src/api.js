@@ -1,17 +1,20 @@
 import axios from 'axios';
 
-// 1. KONFIGURASI URL (Docker-Ready)
-// Jika di Docker/Produksi, set variabel ini di file .env (VITE_API_BASE_URL)
-// Jika tidak ada, otomatis pakai localhost:8080
+// 1. KONFIGURASI URL
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
 const api = axios.create({
     baseURL: BASE_URL,
+    withCredentials: true,
     headers: {
         'Content-Type': 'application/json'
     }
 });
 
+/**
+ * Helper untuk mendapatkan URL Gambar dari backend
+ * Menangani path yang disimpan di DB seperti "/api/images/item_abc.png"
+ */
 export const getImageUrl = (path) => {
     if (!path) return null;
     if (path.startsWith('http')) return path;
@@ -19,7 +22,7 @@ export const getImageUrl = (path) => {
     return `${BASE_URL}${cleanPath}`;
 };
 
-// 1. REQUEST INTERCEPTOR (Tambah Token)
+// 2. REQUEST INTERCEPTOR (Hanya satu block agar efisien)
 api.interceptors.request.use(config => {
     const token = localStorage.getItem('accessToken');
     if (token) {
@@ -28,28 +31,44 @@ api.interceptors.request.use(config => {
     return config;
 }, error => Promise.reject(error));
 
-// 2. RESPONSE INTERCEPTOR (Single Entry - Best Practice)
+// 3. RESPONSE INTERCEPTOR
 api.interceptors.response.use(
     (response) => response,
     async (error) => {
         const originalRequest = error.config;
+        const { response } = error;
 
-        // A. CEK JIKA INI REQUEST LOGIN
-        // Jika gagal login (401), JANGAN jalankan logic refresh/redirect.
-        // Langsung lempar error agar ditangkap catch di Login.vue
+        // A. HANDLING ERROR PESAN DARI BACKEND (GlobalExceptionHandler)
+        // Menangkap pesan seperti "Username sudah digunakan" atau "Stok habis"
+        if (response && response.data && response.data.message) {
+            // Tampilkan alert/toast di sini agar tidak perlu menulis di setiap file .vue
+            console.error("Backend Error:", response.data.message);
+            
+            // Jangan tampilkan alert jika ini error 401 yang akan di-refresh di bawah
+            if (response.status !== 401) {
+                alert(response.data.message);
+            }
+        }
+
+        // B. CEK JIKA INI REQUEST LOGIN
+        // Jika gagal login (karena password salah/akun diblokir), langsung lempar error
         if (originalRequest.url.includes('/api/auth/login')) {
+            if (response && response.status === 401) {
+                alert(response.data.message || "Username atau Password salah.");
+            }
             return Promise.reject(error);
         }
 
-        // B. LOGIC REFRESH TOKEN (Hanya untuk request selain login)
-        if (error.response && error.response.status === 401 && !originalRequest._retry) {
+        // C. LOGIC REFRESH TOKEN (Status 401 selain login)
+        // Menangani sesi kadaluarsa atau token yang ditimpa login baru
+        if (response && response.status === 401 && !originalRequest._retry) {
             originalRequest._retry = true;
 
             try {
                 const refreshToken = localStorage.getItem('refreshToken');
                 if (!refreshToken) throw new Error("No refresh token");
 
-                // Gunakan axios standar agar tidak masuk ke interceptor ini lagi (mencegah loop)
+                // Request ke endpoint refresh tanpa instance 'api' agar tidak loop interceptor
                 const res = await axios.post(`${BASE_URL}/api/auth/refresh-token`, {
                     refreshToken: refreshToken
                 });
@@ -57,19 +76,24 @@ api.interceptors.response.use(
                 const newAccessToken = res.data.accessToken;
                 localStorage.setItem('accessToken', newAccessToken);
 
-                // Ulangi request yang gagal tadi dengan token baru
+                // Ulangi request asli dengan token baru
                 originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
                 return api(originalRequest);
 
             } catch (refreshError) {
-                // C. REDIRECT HANYA JIKA TIDAK DI HALAMAN LOGIN
+                // D. REDIRECT JIKA REFRESH GAGAL
                 if (window.location.pathname !== '/login') {
-                    console.error("Sesi habis.");
                     localStorage.clear();
+                    alert("Sesi Anda telah berakhir atau akun login di perangkat lain.");
                     window.location.href = "/login";
                 }
                 return Promise.reject(refreshError);
             }
+        }
+
+        // E. HANDLING 403 FORBIDDEN (Akses Admin Ditolak)
+        if (response && response.status === 403) {
+            alert("Akses Ditolak: Anda tidak memiliki izin untuk aksi ini.");
         }
 
         return Promise.reject(error);
