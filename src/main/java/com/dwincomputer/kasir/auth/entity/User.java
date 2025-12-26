@@ -21,16 +21,25 @@ public class User implements UserDetails {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(unique = true, nullable = false)
     private String username;
 
+    @Column(nullable = false)
     private String password;
 
-    private String role; // contoh: ADMIN, KASIR
+    // --- BAGIAN INI YANG KURANG TADI ---
+    @Column(name = "nama")
+    private String nama;
+    // -----------------------------------
+
+    private String role; // Di database isinya: "ADMIN" atau "KASIR"
 
     // ============= USERDETAILS IMPLEMENTATION ============= //
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
+        // Otomatis menambahkan "ROLE_"
+        // Jadi kalau di DB role="ADMIN", hasilnya jadi "ROLE_ADMIN" (Ini Benar)
         return List.of(new SimpleGrantedAuthority("ROLE_" + role));
     }
 
@@ -45,22 +54,14 @@ public class User implements UserDetails {
     }
 
     @Override
-    public boolean isAccountNonExpired() {
-        return true;
-    }
+    public boolean isAccountNonExpired() { return true; }
 
     @Override
-    public boolean isAccountNonLocked() {
-        return true;
-    }
+    public boolean isAccountNonLocked() { return true; }
 
     @Override
-    public boolean isCredentialsNonExpired() {
-        return true;
-    }
+    public boolean isCredentialsNonExpired() { return true; }
 
     @Override
-    public boolean isEnabled() {
-        return true;
-    }
+    public boolean isEnabled() { return true; }
 }
