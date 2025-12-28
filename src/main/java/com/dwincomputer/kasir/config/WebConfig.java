@@ -16,9 +16,9 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        // Mengizinkan domain produksi untuk mengakses API
         registry.addMapping("/**")
                 .allowedOrigins("https://demokasir.dwincomputer.com")
+                .allowedOrigins("http://demokasir.dwincomputer.com")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .allowCredentials(true);
