@@ -97,6 +97,7 @@ const handleLogin = async () => {
     localStorage.setItem('refreshToken', res.data.refreshToken);
     localStorage.setItem('username', res.data.username);
     localStorage.setItem('role', res.data.role);
+    localStorage.setItem('permissions', JSON.stringify(res.data.permissions || []));
     
     window.location.href = "/";
   } catch (err) {

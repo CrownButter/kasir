@@ -18,7 +18,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
+import java.util.Set;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
@@ -48,11 +48,17 @@ public class AuthService {
                 .username(req.getUsername())
                 .password(encoder.encode(req.getPassword()))
                 .role(req.getRole())
+                .customPermissions(req.getPermissions())
                 .build();
         userRepo.save(user);      // Audit Log: Mencatat registrasi user baru
         auditService.log("REGISTER", "User baru terdaftar: " + user.getUsername());
 
-        return UserResponse.builder().id(user.getId()).username(user.getUsername()).role(user.getRole()).build(); 
+        return UserResponse.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .role(user.getRole())
+                .permissions(user.getCustomPermissions())
+                .build();
     }
 
     @Transactional
@@ -86,6 +92,7 @@ public class AuthService {
                     .refreshToken(refreshToken.getToken())
                     .username(user.getUsername())
                     .role(user.getRole())
+                    .permissions(user.getCustomPermissions())
                     .build();
 
         } catch (Exception e) {
@@ -116,7 +123,8 @@ public class AuthService {
         return refreshTokenRepo.save(refreshToken);  }
 
     public TokenRefreshResponse refreshToken(TokenRefreshRequest request) {
-        String requestRefreshToken = request.getRefreshToken();      return findByToken(requestRefreshToken)
+        String requestRefreshToken = request.getRefreshToken();
+        return findByToken(requestRefreshToken)
                 .map(this::verifyExpiration)              .map(RefreshToken::getUser)
                 .map(user -> {
                     String token = jwtService.generateToken(user, requestRefreshToken);                  return TokenRefreshResponse.builder()
@@ -131,7 +139,9 @@ public class AuthService {
         return refreshTokenRepo.findByToken(token);  }
 
     public RefreshToken verifyExpiration(RefreshToken token) {
-        if (token.getExpiryDate().compareTo(Instant.now()) < 0) {          refreshTokenRepo.delete(token);          throw new RuntimeException("Refresh token expired. Silakan login ulang."); 
+        if (token.getExpiryDate().compareTo(Instant.now()) < 0) {
+            refreshTokenRepo.delete(token);
+            throw new RuntimeException("Refresh token expired. Silakan login ulang.");
         }
         return token;
     }

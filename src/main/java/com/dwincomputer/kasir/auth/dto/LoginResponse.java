@@ -2,7 +2,7 @@ package com.dwincomputer.kasir.auth.dto;
 
 import lombok.Builder;
 import lombok.Data;
-
+import java.util.Set;
 @Data
 @Builder
 public class LoginResponse {
@@ -10,4 +10,5 @@ public class LoginResponse {
     private String refreshToken;
     private String username;
     private String role;
+    private Set<String> permissions;
 }

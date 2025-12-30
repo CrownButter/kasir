@@ -4,6 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 import jakarta.validation.constraints.Pattern;
+import java.util.Set;
 
 @Data
 public class RegisterRequest {
@@ -19,4 +20,5 @@ public class RegisterRequest {
 
     @NotBlank(message = "Role wajib diisi")
     private String role;
+    private Set<String> permissions;
 }

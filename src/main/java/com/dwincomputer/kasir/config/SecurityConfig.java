@@ -38,6 +38,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/admin/toko").permitAll()
                         .requestMatchers("/api/images/**").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/api/nota/report/**").hasAnyAuthority("ROLE_ADMIN", "VIEW_REPORT")
+                        .requestMatchers("/api/items/**").authenticated()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

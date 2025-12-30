@@ -5,9 +5,13 @@ import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-
+import java.util.HashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.Collection;
 import java.util.List;
+import java.util.ArrayList;
 
 @Entity
 @Table(name = "users")
@@ -31,7 +35,18 @@ public class User implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_" + role));
+        // Ambil Role Utama
+        List<SimpleGrantedAuthority> authorities = new ArrayList<>();
+        authorities.add(new SimpleGrantedAuthority("ROLE_" + role));
+
+        //  Custom Permissions (jika ada)
+        if (customPermissions != null) {
+            for (String perm : customPermissions) {
+                // Spring Security membaca ini sebagai Authority biasa
+                authorities.add(new SimpleGrantedAuthority(perm));
+            }
+        }
+        return authorities;
     }
 
     @Override
@@ -63,4 +78,9 @@ public class User implements UserDetails {
     public boolean isEnabled() {
         return true;
     }
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "user_permissions", joinColumns = @JoinColumn(name = "user_id"))
+    @Column(name = "permission")
+    @Builder.Default
+    private Set<String> customPermissions = new HashSet<>();
 }

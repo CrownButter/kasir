@@ -7,6 +7,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
+// [PENTING] Import PreAuthorize
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -21,17 +23,23 @@ public class ItemController {
     private final ItemService service;
     private final FileStorageService fileStorageService;
 
+    // 1. LIST BARANG
+
     @GetMapping
     public List<ItemEntity> list() {
         return service.all();
     }
+
+    // 2. CARI BARANG BY KODE
+
     @GetMapping("/kode/{kode}")
     public ItemEntity getByKode(@PathVariable String kode) {
         return service.getByKode(kode);
     }
 
-    // Menggunakan MULTIPART_FORM_DATA_VALUE agar bisa menerima File dan JSON sekaligus
+    // 3. SIMPAN / EDIT BARANG (Termasuk Tambah Stok)
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('ADMIN') or hasRole('MANAGER') or hasAuthority('STOCK_UPDATE')")
     public ItemEntity save(
             @RequestPart("item") String itemJson,
             @RequestPart(value = "image", required = false) MultipartFile image) throws IOException {
@@ -49,7 +57,9 @@ public class ItemController {
         return service.save(item);
     }
 
+    // 4. HAPUS BARANG
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('MANAGER')")
     public void delete(@PathVariable Long id) {
         service.delete(id);
     }
