@@ -26,7 +26,6 @@ public class TokoController {
         return ResponseEntity.ok(tokoService.get());
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> save(
             @RequestPart("toko") String tokoJson,

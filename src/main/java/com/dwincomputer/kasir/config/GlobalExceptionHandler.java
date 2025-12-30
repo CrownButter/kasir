@@ -1,5 +1,6 @@
 package com.dwincomputer.kasir.config;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,67 +17,85 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestControllerAdvice
+@Slf4j // Menambahkan fitur Logging otomatis (Lombok)
 public class GlobalExceptionHandler {
 
-    // 1. Menangani Error Validasi (@Valid)
+    // 1. Menangani Error Validasi (@Valid) - Error 400
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidationErrors(MethodArgumentNotValidException ex) {
         Map<String, String> fieldErrors = new HashMap<>();
         for (FieldError error : ex.getBindingResult().getFieldErrors()) {
-            // PERBAIKAN: Gunakan .put() bukan .add()
             fieldErrors.put(error.getField(), error.getDefaultMessage());
         }
 
         Map<String, Object> result = new HashMap<>();
-        result.put("message", "Data tidak valid, periksa kembali inputan Anda.");
+        result.put("message", "Input tidak valid. Periksa kembali data Anda.");
         result.put("errors", fieldErrors);
+
+        log.warn("Gagal validasi input: {}", fieldErrors); // Log warning saja
         return new ResponseEntity<>(result, HttpStatus.BAD_REQUEST);
     }
 
-    // 2. Menangani ResponseStatusException (Yang kita pakai di Service tadi)
+    // 2. Menangani ResponseStatusException (Custom Throw)
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<Map<String, String>> handleResponseStatus(ResponseStatusException ex) {
         Map<String, String> result = new HashMap<>();
-        // Mengambil alasan (reason) yang kita tulis di Service
         result.put("message", ex.getReason());
+
+        log.warn("Response Status Error: {}", ex.getReason());
         return new ResponseEntity<>(result, ex.getStatusCode());
     }
 
-    // 3. Menangani Data Duplikat dari Database
+    // 3. Menangani Data Duplikat / Error Database - Error 409
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<Map<String, String>> handleConflict(DataIntegrityViolationException ex) {
         Map<String, String> result = new HashMap<>();
         String msg = ex.getMostSpecificCause().getMessage();
 
-        if (msg.contains("Duplicate entry")) {
-            result.put("message", "Gagal menyimpan: Data tersebut (Kode/Nama) sudah ada di sistem.");
+        // Null check agar aman
+        if (msg != null && msg.contains("Duplicate entry")) {
+            result.put("message", "Gagal menyimpan: Data (Kode/Username/Email) sudah terdaftar.");
         } else {
-            result.put("message", "Gagal menyimpan karena batasan data di database.");
+            result.put("message", "Gagal menyimpan karena konflik data di database.");
         }
 
+        log.error("Database Conflict: {}", msg);
         return new ResponseEntity<>(result, HttpStatus.CONFLICT);
     }
 
-    // 4. Menangani Error Akses Ditolak
+    // 4. Menangani Error Akses Ditolak - Error 403
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Map<String, String>> handleAccessDenied(AccessDeniedException ex) {
         Map<String, String> result = new HashMap<>();
-        result.put("message", "Akses Ditolak: Anda tidak memiliki izin Admin.");
+        // Pesan netral, tidak menyebut "Admin"
+        result.put("message", "Akses Ditolak: Anda tidak memiliki izin untuk melakukan aksi ini.");
+
+        log.warn("Percobaan akses ditolak: {}", ex.getMessage());
         return new ResponseEntity<>(result, HttpStatus.FORBIDDEN);
     }
 
-    // 5. Menangani Error Umum lainnya
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, String>> handleGeneralError(Exception ex) {
-        Map<String, String> result = new HashMap<>();
-        result.put("message", "Terjadi kesalahan sistem: " + ex.getMessage());
-        return new ResponseEntity<>(result, HttpStatus.INTERNAL_SERVER_ERROR);
-    }
+    // 5. Menangani Gagal Login - Error 401
     @ExceptionHandler({BadCredentialsException.class, InternalAuthenticationServiceException.class})
     public ResponseEntity<Map<String, String>> handleLoginError(Exception ex) {
         Map<String, String> result = new HashMap<>();
-        // Kita kirim pesan yang jelas untuk UI
-        result.put("message", "Username atau Password yang Anda masukkan salah.");
-        return new ResponseEntity<>(result, HttpStatus.UNAUTHORIZED); // 401 Unauthorized
+        result.put("message", "Username atau Password salah.");
+
+        log.warn("Gagal login: {}", ex.getMessage());
+        return new ResponseEntity<>(result, HttpStatus.UNAUTHORIZED);
+    }
+
+    // 6. Menangani Error Umum Lainnya (Fallback) - Error 500
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Map<String, String>> handleGeneralError(Exception ex) {
+        Map<String, String> result = new HashMap<>();
+
+        // PENTING: Jangan tampilkan ex.getMessage() mentah ke user di Production!
+        // User cukup tahu ada error, tapi detailnya kita simpan di log server.
+        result.put("message", "Terjadi kesalahan internal pada server.");
+
+        // Log error lengkap (Stack Trace) agar Anda bisa debug di Terminal
+        log.error("SYSTEM ERROR (500): ", ex);
+
+        return new ResponseEntity<>(result, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }

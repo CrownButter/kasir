@@ -164,8 +164,7 @@ const loadLaporan = async () => {
     const res = await api.get(`/api/nota/report?start=${filter.startDate}&end=${filter.endDate}`);
     dataLaporan.value = res.data;
   } catch (e) {
-    console.error("Gagal load laporan:", e);
-    alert("Gagal memuat laporan");
+  console.error("Gagal load laporan:", e);
   }
 };
 

@@ -1,5 +1,6 @@
 package com.dwincomputer.kasir.auth.service;
 
+import com.dwincomputer.kasir.auth.entity.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -14,6 +15,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
+// import java.util.stream.Collectors; // Tidak perlu lagi jika langsung dipakai
 
 @Service
 public class JwtService {
@@ -28,22 +30,38 @@ public class JwtService {
         return extractClaim(token, Claims::getSubject);
     }
 
-    //  Extract Refresh Token ID (rid) dari Access Token
-    public String extractRefreshTokenId(String token) {
-        return extractClaim(token, claims -> claims.get("rid", String.class));
-    }
-
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         final Claims claims = extractAllClaims(token);
         return claimsResolver.apply(claims);
     }
 
-    //  Generate Token dengan menyisipkan Refresh Token ID
-    public String generateToken(UserDetails userDetails, String currentRefreshToken) {
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("rid", currentRefreshToken); // 'rid' = Refresh ID
-        return generateToken(claims, userDetails);
+    public Claims extractAllClaims(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(getSignInKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
     }
+
+    // --- PERBAIKAN DI SINI ---
+    public String generateToken(User user, String currentRefreshToken) {
+        Map<String, Object> claims = new HashMap<>();
+
+        // 1. Masukkan Refresh Token ID
+        claims.put("rid", currentRefreshToken);
+
+        // 2. Masukkan ROLE
+        claims.put("role", user.getRole());
+
+        // 3. Masukkan PERMISSION
+        // KARENA ERRORNYA BILANG DATA SUDAH STRING, KITA LANGSUNG MASUKKAN SAJA
+        if (user.getCustomPermissions() != null) {
+            claims.put("permissions", user.getCustomPermissions());
+        }
+
+        return generateToken(claims, user);
+    }
+    // --------------------------------
 
     public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
         return Jwts.builder()
@@ -66,14 +84,6 @@ public class JwtService {
 
     private Date extractExpiration(String token) {
         return extractClaim(token, Claims::getExpiration);
-    }
-
-    private Claims extractAllClaims(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(getSignInKey())
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
     }
 
     private Key getSignInKey() {

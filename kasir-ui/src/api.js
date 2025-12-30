@@ -93,7 +93,7 @@ api.interceptors.response.use(
 
         // E. HANDLING 403 FORBIDDEN (Akses Admin Ditolak)
         if (response && response.status === 403) {
-            alert("Akses Ditolak: Anda tidak memiliki izin untuk aksi ini.");
+            console.warn("Akses data ditolak oleh server (403).");
         }
 
         return Promise.reject(error);
